@@ -95,6 +95,12 @@ resource "azurerm_kubernetes_cluster" "main" {
     max_count          = var.aks_enable_auto_scaling ? var.aks_max_count : null
   }
 
+  network_profile {
+    network_plugin = var.aks_network_plugin
+    service_cidr   = var.aks_service_cidr
+    dns_service_ip = var.aks_dns_service_ip
+  }
+
   identity {
     type = "SystemAssigned"
   }
@@ -122,15 +128,16 @@ resource "azurerm_private_dns_zone_virtual_network_link" "postgres" {
 
 # PostgreSQL Flexible Server
 resource "azurerm_postgresql_flexible_server" "main" {
-  name                   = local.postgres_server_name
-  resource_group_name    = azurerm_resource_group.main.name
-  location               = azurerm_resource_group.main.location
-  version                = var.postgres_version
-  delegated_subnet_id    = var.create_vnet ? azurerm_subnet.database[0].id : null
-  private_dns_zone_id    = var.create_vnet ? azurerm_private_dns_zone.postgres[0].id : null
-  administrator_login    = var.postgres_admin_username
-  administrator_password = random_password.postgres_admin_password.result
-  zone                   = "1"
+  name                          = local.postgres_server_name
+  resource_group_name           = azurerm_resource_group.main.name
+  location                      = azurerm_resource_group.main.location
+  version                       = var.postgres_version
+  delegated_subnet_id           = var.create_vnet ? azurerm_subnet.database[0].id : null
+  private_dns_zone_id           = var.create_vnet ? azurerm_private_dns_zone.postgres[0].id : null
+  public_network_access_enabled = var.create_vnet ? false : true
+  administrator_login           = var.postgres_admin_username
+  administrator_password        = random_password.postgres_admin_password.result
+  zone                          = "1"
   
   storage_mb        = var.postgres_storage_mb
   sku_name          = var.postgres_sku_name
@@ -162,12 +169,21 @@ resource "azurerm_redis_cache" "main" {
   location            = azurerm_resource_group.main.location
   resource_group_name = azurerm_resource_group.main.name
   capacity            = var.redis_capacity
-  family              = var.redis_family
-  sku_name            = var.redis_sku_name
-  enable_non_ssl_port = var.redis_enable_non_ssl_port
+  family              = var.redis_enable_persistence || var.redis_enable_clustering ? "P" : var.redis_family
+  sku_name            = var.redis_enable_persistence || var.redis_enable_clustering ? "Premium" : var.redis_sku_name
+  shard_count         = var.redis_enable_clustering ? var.redis_shard_count : null
+  non_ssl_port_enabled = var.redis_enable_non_ssl_port
   minimum_tls_version = "1.2"
 
-  redis_configuration {
+  # Redis configuration with persistence if Premium SKU
+  dynamic "redis_configuration" {
+    for_each = [1]
+    content {
+      # RDB persistence settings (only apply if Premium SKU)
+      rdb_backup_enabled            = var.redis_enable_persistence ? var.redis_rdb_backup_enabled : null
+      rdb_backup_frequency          = var.redis_enable_persistence ? var.redis_rdb_backup_frequency : null
+      rdb_backup_max_snapshot_count = var.redis_enable_persistence ? var.redis_rdb_backup_max_snapshot_count : null
+    }
   }
 
   tags = local.common_tags

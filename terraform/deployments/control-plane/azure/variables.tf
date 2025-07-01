@@ -76,6 +76,25 @@ variable "aks_max_count" {
   default     = 5
 }
 
+# AKS Network Configuration
+variable "aks_network_plugin" {
+  description = "Network plugin for AKS cluster"
+  type        = string
+  default     = "azure"
+}
+
+variable "aks_service_cidr" {
+  description = "Service CIDR for AKS cluster"
+  type        = string
+  default     = "10.240.0.0/16"
+}
+
+variable "aks_dns_service_ip" {
+  description = "DNS service IP for AKS cluster"
+  type        = string
+  default     = "10.240.0.10"
+}
+
 # PostgreSQL Configuration
 variable "postgres_server_name" {
   description = "Name of the PostgreSQL server. If not provided, will be generated"
@@ -148,6 +167,52 @@ variable "redis_enable_non_ssl_port" {
   description = "Enable non-SSL port for Redis"
   type        = bool
   default     = false
+}
+
+# Redis Persistence Configuration
+variable "redis_enable_persistence" {
+  description = "Enable Redis RDB persistence (requires Premium SKU)"
+  type        = bool
+  default     = true
+}
+
+variable "redis_rdb_backup_enabled" {
+  description = "Enable RDB backup for Redis persistence"
+  type        = bool
+  default     = true
+}
+
+variable "redis_rdb_backup_frequency" {
+  description = "RDB backup frequency in minutes (60, 360, 720, 1440)"
+  type        = number
+  default     = 360
+  validation {
+    condition     = contains([60, 360, 720, 1440], var.redis_rdb_backup_frequency)
+    error_message = "RDB backup frequency must be one of: 60, 360, 720, 1440 minutes."
+  }
+}
+
+variable "redis_rdb_backup_max_snapshot_count" {
+  description = "Maximum number of RDB snapshots to retain"
+  type        = number
+  default     = 1
+}
+
+# Redis Clustering Configuration
+variable "redis_enable_clustering" {
+  description = "Enable Redis clustering (requires Premium SKU)"
+  type        = bool
+  default     = false
+}
+
+variable "redis_shard_count" {
+  description = "Number of shards for Redis cluster (only when clustering enabled)"
+  type        = number
+  default     = 1
+  validation {
+    condition     = var.redis_shard_count >= 1 && var.redis_shard_count <= 10
+    error_message = "Redis shard count must be between 1 and 10."
+  }
 }
 
 # Key Vault Configuration
