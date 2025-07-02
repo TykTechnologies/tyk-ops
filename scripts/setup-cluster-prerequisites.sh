@@ -94,21 +94,50 @@ setup_helm_repos() {
     log_success "Helm repositories configured"
 }
 
+# Extract Tyk Operator version from values.yaml
+get_operator_version() {
+    local values_file="kubernetes/tyk-control-plane/values.yaml"
+    
+    if [[ -f "$values_file" ]]; then
+        # Extract version using grep and awk
+        local version=$(grep -A 2 "tyk-operator:" "$values_file" | grep "tag:" | awk '{print $2}' | tr -d '"')
+        if [[ -n "$version" ]]; then
+            echo "$version"
+            return 0
+        fi
+    fi
+    
+    # Fallback to default version if extraction fails
+    log_warning "Could not extract operator version from values.yaml, using default v1.2.0"
+    echo "v1.2.0"
+}
+
 # Install Tyk Operator CRDs
 install_tyk_operator_crds() {
     log_info "Installing Tyk Operator CRDs..."
     
     # Check if CRDs are already installed
-    if kubectl get crd apidefinitions.tyk.tyk.io &> /dev/null; then
+    if kubectl get crd apidefinitions.tyk.tyk.io &> /dev/null && kubectl get crd tykoasapidefinitions.tyk.tyk.io &> /dev/null; then
         log_success "Tyk Operator CRDs already installed"
         return 0
     fi
     
-    # Install Tyk Operator CRDs
-    log_info "Applying Tyk Operator CRDs..."
-    kubectl apply -f https://raw.githubusercontent.com/TykTechnologies/tyk-operator/master/helm/crds/crds.yaml
+    # Get operator version dynamically
+    local operator_version=$(get_operator_version)
+    log_info "Detected Tyk Operator version: $operator_version"
     
-    log_success "Tyk Operator CRDs installed"
+    # Construct CRD URL based on operator version
+    local crd_url="https://raw.githubusercontent.com/TykTechnologies/tyk-charts/refs/heads/main/tyk-operator-crds/crd-${operator_version}.yaml"
+    
+    # Install version-specific Tyk Operator CRDs
+    log_info "Applying Tyk Operator CRDs for version $operator_version..."
+    if kubectl apply -f "$crd_url"; then
+        log_success "Tyk Operator CRDs $operator_version installed successfully"
+    else
+        log_error "Failed to install CRDs for version $operator_version"
+        log_info "Attempting fallback to v1.2.0..."
+        kubectl apply -f "https://raw.githubusercontent.com/TykTechnologies/tyk-charts/refs/heads/main/tyk-operator-crds/crd-v1.2.0.yaml"
+    fi
 }
 
 # Create tyk namespace
@@ -142,10 +171,11 @@ verify_prerequisites() {
     fi
     
     # Check Tyk Operator CRDs
-    if kubectl get crd apidefinitions.tyk.tyk.io &> /dev/null; then
-        log_success "✅ Tyk Operator CRDs installed"
+    if kubectl get crd apidefinitions.tyk.tyk.io &> /dev/null && kubectl get crd tykoasapidefinitions.tyk.tyk.io &> /dev/null; then
+        log_success "✅ Tyk Operator CRDs installed (including TykOasApiDefinition)"
     else
-        log_error "❌ Tyk Operator CRDs not installed"
+        log_error "❌ Tyk Operator CRDs not installed or missing TykOasApiDefinition"
+        log_error "    Make sure you're using the correct CRD version (v1.2.0)"
         return 1
     fi
     
