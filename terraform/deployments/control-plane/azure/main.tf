@@ -174,16 +174,24 @@ resource "azurerm_redis_cache" "main" {
   non_ssl_port_enabled = var.redis_enable_non_ssl_port
   minimum_tls_version = "1.2"
 
-  # Redis configuration with persistence if Premium SKU
+  # Redis configuration for Basic/Standard tiers
   dynamic "redis_configuration" {
-    for_each = [1]
+    for_each = var.redis_family == "C" ? [1] : []
     content {
       authentication_enabled = true
       maxmemory_policy       = "volatile-lru"
-      # RDB persistence settings (only apply if Premium SKU and enabled)
-      rdb_backup_enabled            = var.redis_enable_persistence ? var.redis_rdb_backup_enabled : false
-      rdb_backup_frequency          = var.redis_enable_persistence && var.redis_rdb_backup_enabled ? var.redis_rdb_backup_frequency : null
-      rdb_backup_max_snapshot_count = var.redis_enable_persistence && var.redis_rdb_backup_enabled ? var.redis_rdb_backup_max_snapshot_count : null
+    }
+  }
+
+  # Redis configuration for Premium tier with RDB options
+  dynamic "redis_configuration" {
+    for_each = var.redis_family == "P" || var.redis_enable_clustering || var.redis_enable_persistence ? [1] : []
+    content {
+      authentication_enabled = true
+      maxmemory_policy       = "volatile-lru"
+      rdb_backup_enabled            = var.redis_rdb_backup_enabled
+      rdb_backup_frequency          = var.redis_rdb_backup_enabled ? var.redis_rdb_backup_frequency : null
+      rdb_backup_max_snapshot_count = var.redis_rdb_backup_enabled ? var.redis_rdb_backup_max_snapshot_count : null
     }
   }
 

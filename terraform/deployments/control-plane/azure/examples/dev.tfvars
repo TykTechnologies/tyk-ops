@@ -41,9 +41,9 @@ redis_family = "C"
 redis_sku_name = "Basic"
 redis_enable_non_ssl_port = false
 
-# Redis Persistence - Enabled to preserve analytics, sessions, and rate limiting data
-redis_enable_persistence = true
-redis_rdb_backup_enabled = true
+# Redis Persistence - Disabled for development (Basic tier doesn't support persistence)
+redis_enable_persistence = false
+redis_rdb_backup_enabled = false
 redis_rdb_backup_frequency = 360
 redis_rdb_backup_max_snapshot_count = 1
 
