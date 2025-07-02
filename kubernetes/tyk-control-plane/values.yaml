@@ -1,0 +1,254 @@
+# Tyk Control Plane Helm Chart Configuration
+# Secure deployment with ClusterIP services only (no internet exposure)
+
+global:
+  # PostgreSQL Configuration (using Azure PostgreSQL Flexible Server)
+  postgres:
+    host: "${POSTGRES_HOST}"
+    port: 5432
+    user: "${POSTGRES_USER}"
+    password: "${POSTGRES_PASSWORD}"
+    database: "${POSTGRES_DB}"
+    sslmode: require
+
+  # Redis Configuration (using Azure Redis Cache)
+  redis:
+    addrs:
+      - "${REDIS_HOST}:${REDIS_PORT}"
+    pass: "${REDIS_PASSWORD}"
+    enableCluster: false
+    useSSL: true
+
+  # Tyk License Configuration
+  license:
+    dashboard: "${DASHBOARD_LICENSE}"
+    mdcb: "${MDCB_LICENSE}"
+    operator: "${OPERATOR_LICENSE}"
+    
+  # Enterprise Developer Portal License
+  enterprisePortal:
+    license: "${PORTAL_LICENSE}"
+
+  # Security Configuration
+  secrets:
+    APISecret: "${API_SECRET}"
+    AdminSecret: "${ADMIN_SECRET}"
+
+  # Global Admin User Configuration (for bootstrap)
+  adminUser:
+    firstName: "${ADMIN_FIRST_NAME}"
+    lastName: "${ADMIN_LAST_NAME}"
+    email: "${ADMIN_EMAIL}"
+    password: "${ADMIN_PASSWORD}"
+
+  # Component Enablement
+  components:
+    bootstrap: true
+    dashboard: true
+    gateway: true
+    pump: true
+    mdcb: true
+    devPortal: true
+    operator: true
+
+  # Service Ports Configuration
+  servicePorts:
+    gateway: 8080
+    dashboard: 3000
+    mdcb: 9091
+
+# Tyk Gateway Configuration
+tyk-gateway:
+  gateway:
+    # Override default Gateway version to latest LTS
+    image:
+      tag: v5.8.1
+      
+    # Service Configuration - ClusterIP only (secure)
+    service:
+      type: ClusterIP
+      port: 8080
+      
+    # Disable ingress for security
+    ingress:
+      enabled: false
+      
+    # Resource Configuration
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "250m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+
+# Tyk Dashboard Configuration
+tyk-dashboard:
+  dashboard:
+    # Override default Dashboard version to latest LTS
+    image:
+      tag: v5.8.1
+      
+    # Service Configuration - ClusterIP only (secure)
+    service:
+      type: ClusterIP
+      port: 3000
+      
+    # Disable ingress for security
+    ingress:
+      enabled: false
+      
+    # Admin User Bootstrap
+    adminUser:
+      firstName: "${ADMIN_FIRST_NAME}"
+      lastName: "${ADMIN_LAST_NAME}"
+      email: "${ADMIN_EMAIL}"
+      password: "${ADMIN_PASSWORD}"
+      
+    # Resource Configuration
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "250m"
+      limits:
+        memory: "1Gi"
+        cpu: "500m"
+
+# Tyk MDCB Configuration
+tyk-mdcb:
+  mdcb:
+    # Override default MDCB version to latest LTS
+    image:
+      tag: v2.8.1
+      
+    # MDCB License Configuration
+    license: "${MDCB_LICENSE}"
+    
+    # Security Configuration for MDCB
+    security:
+      # Secret required for accessing secure HTTP endpoints
+      secret: "${MDCB_SECURITY_SECRET}"
+      # Enable secure HTTP endpoints for monitoring/debugging
+      enableHttpSecureEndpoints: true
+    
+    # Service Configuration - ClusterIP only (secure)
+    service:
+      type: ClusterIP
+      port: 9091
+      
+    # Disable ingress for security
+    ingress:
+      enabled: false
+      
+    # Resource Configuration
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "250m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+
+# Tyk Pump Configuration
+tyk-pump:
+  pump:
+    # Override default Pump version to latest LTS
+    image:
+      tag: v1.12.0
+      
+    # PostgreSQL backend configuration
+    backend:
+      - "postgres"
+      
+    # Resource Configuration
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "250m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+
+# Enterprise Developer Portal Configuration
+tyk-dev-portal:
+  # Enable Developer Portal
+  enabled: true
+  
+  # Override default EDP version to latest LTS
+  image:
+    tag: v1.13.2
+  
+  # Developer Portal License
+  license: "${PORTAL_LICENSE}"
+  
+  # Service Configuration - ClusterIP only (secure)
+  service:
+    type: ClusterIP
+    port: 3001
+    
+  # Disable ingress for security
+  ingress:
+    enabled: false
+    
+  # Database Configuration (PostgreSQL)
+  database:
+    dialect: "postgres"
+    connectionString: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD_ENCODED}@${POSTGRES_HOST}:5432/${POSTGRES_DB}?sslmode=require"
+    
+  # Admin User Bootstrap
+  bootstrap:
+    enabled: true
+    adminUser:
+      firstName: "${ADMIN_FIRST_NAME}"
+      lastName: "${ADMIN_LAST_NAME}"
+      email: "${ADMIN_EMAIL}"
+      password: "${ADMIN_PASSWORD}"
+      
+  # Resource Configuration
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+
+# Redis (External - using Azure Redis Cache)
+redis:
+  # Disable internal Redis as we're using Azure Redis Cache
+  enabled: false
+
+# PostgreSQL (External - using Azure PostgreSQL Flexible Server)
+postgresql:
+  # Disable internal PostgreSQL as we're using Azure PostgreSQL
+  enabled: false
+
+# Tyk Operator Configuration
+tyk-operator:
+  # Override default Operator version to latest LTS
+  image:
+    tag: v1.2.0
+  
+  # Environment variables for Tyk Operator
+  envVars:
+    - name: TYK_HTTPS_INGRESS_PORT
+      value: "8443"
+    - name: TYK_HTTP_INGRESS_PORT
+      value: "8080"
+  
+  # Resource Configuration
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "200m"
+
+# Tyk Bootstrap Configuration
+tyk-bootstrap:
+  bootstrap:
+    # Enable dashboard bootstrap
+    dashboard: true
+    # Enable dev portal bootstrap
+    devPortal: true

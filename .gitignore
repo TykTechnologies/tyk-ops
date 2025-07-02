@@ -50,3 +50,7 @@ secrets/
 .env
 .env.local
 local/
+
+# Infrastructure secrets (auto-generated)
+kubernetes/tyk-control-plane/infrastructure.env
+kubernetes/tyk-control-plane/values-configured.yaml
