@@ -1,0 +1,261 @@
+global:
+  license:
+    # License keys will be pulled from Azure Key Vault via secrets
+    dashboard: ""
+    operator: ""
+
+  # Admin user credentials will be pulled from Azure Key Vault
+  adminUser:
+    useSecretName: "tyk-admin-user-secret"
+    firstName: admin
+    lastName: user
+    email: default@example.com
+    password: "123456"
+
+  components:
+    # Enable bootstrap for initial setup
+    bootstrap: true
+    # Enable pump for analytics
+    pump: true
+    # Enable developer portal
+    devPortal: true
+    # Disable operator for now (can be enabled later)
+    operator: false
+
+  servicePorts:
+    dashboard: 3000
+    gateway: 8080
+
+  tls:
+    dashboard: false
+    gateway: false
+    useDefaultTykCertificate: true
+
+  secrets:
+    # Use external secret for sensitive data
+    useSecretName: "tyk-secrets"
+    APISecret: CHANGEME
+    AdminSecret: "12345"
+
+  # Azure Redis Cache configuration
+  redis:
+    # Azure Redis Cache endpoint with SSL
+    addrs:
+      - "tyk-control-plane-dev-redis.redis.cache.windows.net:6380"
+    # Password will be set via secret
+    pass: ""
+    # Enable SSL for Azure Redis
+    useSSL: true
+    # Skip SSL verification for development (set to false in production)
+    sslInsecureSkipVerify: false
+    # Use secret for Redis password
+    passSecret:
+      name: "tyk-redis-secret"
+      keyName: "redis-password"
+    storage:
+      database: 0
+
+  # Azure PostgreSQL configuration
+  postgres:
+    host: "tyk-control-plane-dev-postgres.postgres.database.azure.com"
+    port: 5432
+    user: "tykadmin"
+    password: ""
+    database: "tyk"
+    sslmode: "require"
+    # Use secret for connection string
+    connectionStringSecret:
+      name: "tyk-postgres-secret"
+      keyName: "postgres-connection-string"
+
+  # Use PostgreSQL as storage backend
+  storageType: postgres
+
+  # Enable MDCB Synchronizer for control plane
+  mdcbSynchronizer:
+    enabled: true
+
+  # Enable hash keys for security
+  hashKeys: true
+
+  # Enable OAS validation
+  oasValidateExamples: false
+  oasValidateSchemaDefaults: false
+
+  # Enable streaming
+  streaming:
+    enabled: true
+
+# Tyk Gateway configuration
+tyk-gateway:
+  gateway:
+    hostName: "tyk-gw.local"
+    enableFixedWindowRateLimiter: false
+    useDashboardAppConfig:
+      enabled: true
+    replicaCount: 2
+    
+    # Gateway service configuration
+    service:
+      type: LoadBalancer
+      annotations:
+        service.beta.kubernetes.io/azure-load-balancer-health-probe-request-path: "/hello"
+    
+    # Enable ingress for external access
+    ingress:
+      enabled: true
+      className: "nginx"
+      annotations:
+        kubernetes.io/ingress.class: nginx
+        nginx.ingress.kubernetes.io/ssl-redirect: "false"
+      hosts:
+        - host: tyk-gateway.dev.local
+          paths:
+            - path: /
+              pathType: Prefix
+
+    # Resource limits
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+      requests:
+        cpu: 500m
+        memory: 512Mi
+
+# Tyk Dashboard configuration
+tyk-dashboard:
+  dashboard:
+    hostName: "tyk-dashboard.local"
+    replicaCount: 2
+    enableOwnership: true
+    defaultPageSize: 10
+    notifyOnChange: true
+    hashKeys: true
+    enableDuplicateSlugs: true
+    showOrgId: true
+    
+    hostConfig:
+      enableHostNames: true
+      disableOrgSlugPrefix: true
+      overrideHostname: "tyk-gw.local"
+    
+    homeDir: "/opt/tyk-dashboard"
+    useShardedAnalytics: true
+    enableAggregateLookups: true
+    enableAnalyticsCache: true
+    allowExplicitPolicyId: true
+    
+    # Service configuration
+    service:
+      type: LoadBalancer
+      annotations:
+        service.beta.kubernetes.io/azure-load-balancer-health-probe-request-path: "/hello"
+    
+    # Enable ingress for external access
+    ingress:
+      enabled: true
+      className: "nginx"
+      annotations:
+        kubernetes.io/ingress.class: nginx
+        nginx.ingress.kubernetes.io/ssl-redirect: "false"
+      hosts:
+        - host: tyk-dashboard.dev.local
+          paths:
+            - path: /
+              pathType: Prefix
+
+    # Resource limits
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+      requests:
+        cpu: 500m
+        memory: 512Mi
+
+# Tyk MDCB configuration
+tyk-mdcb:
+  mdcb:
+    # License will be set via secret
+    license: ""
+    useSecretName: "tyk-mdcb-secret"
+    
+    # MDCB configuration
+    listenPort: 9091
+    httpPort: 8181
+    forwardAnalyticsToPump: true
+    enableMultipleAnalyticsKey: true
+    dontStoreSelective: false
+    dontStoreAggregate: false
+    trackAllPaths: false
+    storeAnalyticsPerMinute: false
+    
+    # Security configuration
+    security:
+      secret: "CHANGEME"
+      enableHttpSecureEndpoints: true
+    
+    # Service configuration
+    service:
+      type: LoadBalancer
+      port: 9091
+      annotations:
+        service.beta.kubernetes.io/azure-load-balancer-health-probe-request-path: "/liveness"
+    
+    # Resource limits
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 250m
+        memory: 256Mi
+    
+    replicaCount: 2
+
+# Tyk Pump configuration
+tyk-pump:
+  pump:
+    replicaCount: 1
+    backend:
+      - "prometheus"
+      - "postgres"
+    
+    # Prometheus pump configuration
+    prometheusPump:
+      host: ""
+      path: /metrics
+      customMetrics: ""
+      prometheusOperator:
+        enabled: false
+    
+    # Resource limits
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 250m
+        memory: 256Mi
+    
+    # Health check service
+    healthCheckService:
+      enabled: true
+      path: "hello"
+      port: 8083
+
+# Tyk Bootstrap configuration
+tyk-bootstrap:
+  bootstrap:
+    devPortal: true
+    dashboard: true
+    portal: false
+    sslInsecureSkipVerify: false
+    operatorSecret: "tyk-operator-conf"
+    
+    org:
+      name: "Tyk Control Plane Organization"
+      cname: "tyk-portal.dev.local"
+      hybrid:
+        enabled: true

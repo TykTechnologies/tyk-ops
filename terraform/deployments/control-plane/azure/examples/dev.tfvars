@@ -41,9 +41,9 @@ redis_family = "C"
 redis_sku_name = "Basic"
 redis_enable_non_ssl_port = false
 
-# Redis Persistence - Disabled for development (data can be rebuilt from PostgreSQL)
-redis_enable_persistence = false
-redis_rdb_backup_enabled = false
+# Redis Persistence - Enabled to preserve analytics, sessions, and rate limiting data
+redis_enable_persistence = true
+redis_rdb_backup_enabled = true
 redis_rdb_backup_frequency = 360
 redis_rdb_backup_max_snapshot_count = 1
 
@@ -51,9 +51,6 @@ redis_rdb_backup_max_snapshot_count = 1
 redis_enable_clustering = false
 redis_shard_count = 1
 
-# Key Vault Configuration
-enable_key_vault = true
-key_vault_sku = "standard"
 
 # Networking Configuration
 create_vnet = true

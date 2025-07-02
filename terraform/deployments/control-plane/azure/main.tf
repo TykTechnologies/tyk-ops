@@ -5,7 +5,6 @@ locals {
   aks_cluster_name    = var.aks_cluster_name != "" ? var.aks_cluster_name : "${var.project_name}-${var.environment}-aks"
   postgres_server_name = var.postgres_server_name != "" ? var.postgres_server_name : "${var.project_name}-${var.environment}-postgres"
   redis_cache_name    = var.redis_cache_name != "" ? var.redis_cache_name : "${var.project_name}-${var.environment}-redis"
-  key_vault_name      = var.key_vault_name != "" ? var.key_vault_name : "${var.project_name}-${var.environment}-kv"
   vnet_name          = var.vnet_name != "" ? var.vnet_name : "${var.project_name}-${var.environment}-vnet"
 
   # Common tags
@@ -179,87 +178,14 @@ resource "azurerm_redis_cache" "main" {
   dynamic "redis_configuration" {
     for_each = [1]
     content {
-      # RDB persistence settings (only apply if Premium SKU)
-      rdb_backup_enabled            = var.redis_enable_persistence ? var.redis_rdb_backup_enabled : null
-      rdb_backup_frequency          = var.redis_enable_persistence ? var.redis_rdb_backup_frequency : null
-      rdb_backup_max_snapshot_count = var.redis_enable_persistence ? var.redis_rdb_backup_max_snapshot_count : null
+      authentication_enabled = true
+      maxmemory_policy       = "volatile-lru"
+      # RDB persistence settings (only apply if Premium SKU and enabled)
+      rdb_backup_enabled            = var.redis_enable_persistence ? var.redis_rdb_backup_enabled : false
+      rdb_backup_frequency          = var.redis_enable_persistence && var.redis_rdb_backup_enabled ? var.redis_rdb_backup_frequency : null
+      rdb_backup_max_snapshot_count = var.redis_enable_persistence && var.redis_rdb_backup_enabled ? var.redis_rdb_backup_max_snapshot_count : null
     }
   }
 
   tags = local.common_tags
-}
-
-# Key Vault (optional)
-resource "azurerm_key_vault" "main" {
-  count                       = var.enable_key_vault ? 1 : 0
-  name                        = local.key_vault_name
-  location                    = azurerm_resource_group.main.location
-  resource_group_name         = azurerm_resource_group.main.name
-  enabled_for_disk_encryption = true
-  tenant_id                   = data.azurerm_client_config.current.tenant_id
-  soft_delete_retention_days  = 7
-  purge_protection_enabled    = false
-  sku_name                    = var.key_vault_sku
-
-  access_policy {
-    tenant_id = data.azurerm_client_config.current.tenant_id
-    object_id = data.azurerm_client_config.current.object_id
-
-    key_permissions = [
-      "Get",
-    ]
-
-    secret_permissions = [
-      "Get",
-      "List",
-      "Set",
-      "Delete",
-      "Recover",
-      "Purge",
-    ]
-
-    storage_permissions = [
-      "Get",
-    ]
-  }
-
-  # AKS managed identity access
-  access_policy {
-    tenant_id = data.azurerm_client_config.current.tenant_id
-    object_id = azurerm_kubernetes_cluster.main.kubelet_identity[0].object_id
-
-    secret_permissions = [
-      "Get",
-      "List",
-    ]
-  }
-
-  tags = local.common_tags
-}
-
-# Store PostgreSQL connection string in Key Vault
-resource "azurerm_key_vault_secret" "postgres_connection_string" {
-  count        = var.enable_key_vault ? 1 : 0
-  name         = "postgres-connection-string"
-  value        = "postgresql://${var.postgres_admin_username}:${random_password.postgres_admin_password.result}@${azurerm_postgresql_flexible_server.main.fqdn}:5432/tyk"
-  key_vault_id = azurerm_key_vault.main[0].id
-  tags         = local.common_tags
-}
-
-# Store Redis connection string in Key Vault
-resource "azurerm_key_vault_secret" "redis_connection_string" {
-  count        = var.enable_key_vault ? 1 : 0
-  name         = "redis-connection-string"
-  value        = "${azurerm_redis_cache.main.hostname}:${azurerm_redis_cache.main.ssl_port}"
-  key_vault_id = azurerm_key_vault.main[0].id
-  tags         = local.common_tags
-}
-
-# Store Redis auth token in Key Vault
-resource "azurerm_key_vault_secret" "redis_auth_token" {
-  count        = var.enable_key_vault ? 1 : 0
-  name         = "redis-auth-token"
-  value        = azurerm_redis_cache.main.primary_access_key
-  key_vault_id = azurerm_key_vault.main[0].id
-  tags         = local.common_tags
 }

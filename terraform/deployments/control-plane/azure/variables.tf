@@ -173,13 +173,13 @@ variable "redis_enable_non_ssl_port" {
 variable "redis_enable_persistence" {
   description = "Enable Redis RDB persistence (requires Premium SKU)"
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "redis_rdb_backup_enabled" {
   description = "Enable RDB backup for Redis persistence"
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "redis_rdb_backup_frequency" {
@@ -215,24 +215,6 @@ variable "redis_shard_count" {
   }
 }
 
-# Key Vault Configuration
-variable "enable_key_vault" {
-  description = "Enable Azure Key Vault for secrets management"
-  type        = bool
-  default     = true
-}
-
-variable "key_vault_name" {
-  description = "Name of the Key Vault. If not provided, will be generated"
-  type        = string
-  default     = ""
-}
-
-variable "key_vault_sku" {
-  description = "SKU for Key Vault"
-  type        = string
-  default     = "standard"
-}
 
 # Networking Configuration
 variable "create_vnet" {

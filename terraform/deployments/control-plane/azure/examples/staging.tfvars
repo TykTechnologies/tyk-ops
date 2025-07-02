@@ -36,10 +36,6 @@ redis_rdb_backup_max_snapshot_count = 2  # Keep 2 snapshots
 redis_enable_clustering = false
 redis_shard_count = 1
 
-# Key Vault Configuration
-enable_key_vault = true
-key_vault_sku = "standard"
-
 # Networking Configuration
 create_vnet = true
 vnet_address_space = ["10.1.0.0/16"]

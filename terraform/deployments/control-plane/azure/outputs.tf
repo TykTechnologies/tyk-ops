@@ -88,17 +88,6 @@ output "redis_connection_string" {
   value       = "${azurerm_redis_cache.main.hostname}:${azurerm_redis_cache.main.ssl_port}"
 }
 
-# Key Vault
-output "key_vault_name" {
-  description = "Name of the Key Vault (if enabled)"
-  value       = var.enable_key_vault ? azurerm_key_vault.main[0].name : null
-}
-
-output "key_vault_uri" {
-  description = "URI of the Key Vault (if enabled)"
-  value       = var.enable_key_vault ? azurerm_key_vault.main[0].vault_uri : null
-}
-
 # Networking
 output "vnet_name" {
   description = "Name of the virtual network (if created)"
@@ -145,7 +134,6 @@ output "data_plane_connection_info" {
     postgres_database  = azurerm_postgresql_flexible_server_database.tyk.name
     redis_hostname     = azurerm_redis_cache.main.hostname
     redis_ssl_port     = azurerm_redis_cache.main.ssl_port
-    key_vault_name     = var.enable_key_vault ? azurerm_key_vault.main[0].name : null
     vnet_id           = var.create_vnet ? azurerm_virtual_network.main[0].id : null
   }
 }
