@@ -13,10 +13,12 @@ locals {
   })
 }
 
-# Generate random password for PostgreSQL
+# Generate random password for PostgreSQL (URL-safe characters only)
 resource "random_password" "postgres_admin_password" {
-  length  = 16
+  length  = 20
   special = true
+  # Only use URL-safe special characters
+  override_special = "-_."
 }
 
 # Data source to get current client configuration
