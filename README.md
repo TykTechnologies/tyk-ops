@@ -92,6 +92,8 @@ make gitops-status
 - **Prerequisites**: cert-manager, Tyk Operator CRDs, namespaces
 - **Tyk Control Plane**: Dashboard, Gateway, MDCB, Pump, Developer Portal, Operator
 
+**🔄 Automated Sync**: All applications have automated sync enabled - any Git commit to the main branch will trigger automatic re-deployment within 3 minutes (default ArgoCD polling interval).
+
 **📝 Demo Repository**: Fork this repository and the setup script automatically detects your fork and configures ArgoCD to use it!
 
 **🔓 Repository Access**: Ensure your forked repository is publicly accessible or configure ArgoCD with appropriate credentials for private repositories.
@@ -250,6 +252,42 @@ kubectl get events -n tyk --sort-by='.lastTimestamp'
 
 # Check ArgoCD applications (GitOps)
 kubectl get applications -n argocd
+```
+
+## 🔄 GitOps Management
+
+### Automated Deployment
+- **Git-driven**: All changes are made via Git commits
+- **Automatic sync**: ArgoCD polls the repository every 3 minutes for changes
+- **Instant deployment**: Push to main/master branch triggers automatic re-deployment
+- **Self-healing**: ArgoCD automatically reverts manual kubectl changes
+
+### Making Changes
+```bash
+# 1. Make changes to GitOps manifests
+vim gitops/applications/tyk-control-plane.yaml
+
+# 2. Commit and push changes
+git add .
+git commit -m "Update Tyk configuration"
+git push origin main
+
+# 3. ArgoCD automatically detects and applies changes (within 3 minutes)
+# No manual intervention required!
+```
+
+### Sync Policies
+- **Root Application**: Automated sync with pruning and self-healing
+- **Prerequisites**: Automated sync with retry logic
+- **Tyk Control Plane**: Automated sync with retry logic
+
+### Manual Sync (Optional)
+```bash
+# Force immediate sync without waiting for polling
+kubectl patch app tyk-control-plane -n argocd -p '{"metadata":{"annotations":{"argocd.argoproj.io/refresh":"hard"}}}'
+
+# Or use ArgoCD CLI
+argocd app sync tyk-control-plane
 ```
 
 ## 🤝 Contributing
