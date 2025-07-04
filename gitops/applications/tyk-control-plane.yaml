@@ -12,7 +12,7 @@ spec:
   source:
     chart: tyk-control-plane
     repoURL: https://helm.tyk.io/public/helm/charts/
-    targetRevision: 1.8.0
+    targetRevision: 3.0.0
     helm:
       releaseName: tyk-cp
       values: |

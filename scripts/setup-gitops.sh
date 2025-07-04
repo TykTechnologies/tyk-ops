@@ -161,7 +161,17 @@ deploy_root_application() {
         return 1
     fi
     
-    log_info "Detected Git repository: $git_repo_url"
+    # Convert SSH URLs to HTTPS URLs for ArgoCD compatibility
+    if [[ "$git_repo_url" =~ ^git@github\.com:(.+)\.git$ ]]; then
+        git_repo_url="https://github.com/${BASH_REMATCH[1]}.git"
+        log_info "Converted SSH URL to HTTPS for ArgoCD compatibility"
+    elif [[ "$git_repo_url" =~ ^git@([^:]+):(.+)\.git$ ]]; then
+        # Handle other Git providers (GitLab, Bitbucket, etc.)
+        git_repo_url="https://${BASH_REMATCH[1]}/${BASH_REMATCH[2]}.git"
+        log_info "Converted SSH URL to HTTPS for ArgoCD compatibility"
+    fi
+    
+    log_info "Using Git repository: $git_repo_url"
     
     # Update all ArgoCD applications to use the detected Git repository
     log_info "Updating ArgoCD applications to use your Git repository..."

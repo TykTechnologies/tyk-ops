@@ -94,6 +94,8 @@ make gitops-status
 
 **📝 Demo Repository**: Fork this repository and the setup script automatically detects your fork and configures ArgoCD to use it!
 
+**🔓 Repository Access**: Ensure your forked repository is publicly accessible or configure ArgoCD with appropriate credentials for private repositories.
+
 **Benefits:**
 - Declarative configuration
 - Automated synchronization
@@ -234,6 +236,9 @@ terraform apply -var-file="examples/prod.tfvars"
 2. **MDCB Issues**: Verify license and security secrets
 3. **Database Connection**: Check PostgreSQL connection strings
 4. **ArgoCD Sync Issues**: Check application status and logs
+5. **SSH Agent Error**: ArgoCD requires HTTPS Git URLs, not SSH
+   - The setup script automatically converts SSH URLs to HTTPS
+   - If you encounter SSH errors, ensure your repository is publicly accessible
 
 ### Get Help
 ```bash
