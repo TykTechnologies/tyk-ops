@@ -1,10 +1,10 @@
 # Makefile for Tyk Control Plane Operations
-# This file contains commands to manage and reset databases
+# This file contains commands to manage traditional and GitOps deployments
 
-.PHONY: help setup-prerequisites deploy fresh-deploy status
+.PHONY: help setup-prerequisites deploy helm-deploy fresh-deploy status install-argocd setup-gitops setup-tyk-applications gitops-deploy gitops-status
 
-# Load environment variables
-include kubernetes/tyk-control-plane/infrastructure.env
+# Load environment variables if they exist
+-include kubernetes/tyk-control-plane/infrastructure.env
 
 help: ## Show this help message
 	@echo "Available commands:"
@@ -20,8 +20,8 @@ deploy: setup-prerequisites ## Deploy Tyk Control Plane (requires prerequisites)
 	@chmod +x scripts/deploy-tyk-control-plane.sh
 	@./scripts/deploy-tyk-control-plane.sh && echo "✓ Deployment completed" || echo "✗ Deployment failed"
 
-fresh-deploy: ## Complete fresh deployment (infrastructure + prerequisites + tyk)
-	@echo "Starting fresh deployment..."
+helm-deploy: ## Complete Helm-based deployment (infrastructure + prerequisites + tyk)
+	@echo "Starting Helm-based deployment..."
 	@echo "Step 1: Deploying infrastructure..."
 	@cd terraform/deployments/control-plane/azure && terraform apply -auto-approve -var-file="examples/dev.tfvars"
 	@echo "Step 2: Extracting infrastructure secrets..."
@@ -30,7 +30,9 @@ fresh-deploy: ## Complete fresh deployment (infrastructure + prerequisites + tyk
 	@make setup-prerequisites
 	@echo "Step 4: Deploying Tyk Control Plane..."
 	@make deploy
-	@echo "✓ Fresh deployment completed!"
+	@echo "✓ Helm deployment completed!"
+
+fresh-deploy: helm-deploy ## Alias for helm-deploy (backward compatibility)
 
 status: ## Check deployment status
 	@echo "Checking deployment status..."
@@ -40,6 +42,43 @@ status: ## Check deployment status
 	@echo ""
 	@echo "=== Services Status ==="
 	@kubectl get services -n tyk 2>/dev/null || echo "✗ No services found (namespace may not exist)"
+
+# GitOps Commands
+install-argocd: ## Install ArgoCD on the cluster
+	@echo "Installing ArgoCD..."
+	@chmod +x scripts/install-argocd.sh
+	@./scripts/install-argocd.sh && echo "✓ ArgoCD installation completed" || echo "✗ ArgoCD installation failed"
+
+setup-gitops: ## Setup GitOps (create secrets and deploy ArgoCD applications)
+	@echo "Setting up GitOps deployment..."
+	@chmod +x scripts/setup-gitops.sh
+	@./scripts/setup-gitops.sh && echo "✓ GitOps setup completed" || echo "✗ GitOps setup failed"
+
+setup-tyk-applications: setup-gitops ## Setup Tyk applications in ArgoCD (alias for setup-gitops)
+
+gitops-deploy: ## Complete GitOps deployment (infrastructure + ArgoCD + applications)
+	@echo "Starting GitOps deployment..."
+	@echo "Step 1: Deploying infrastructure..."
+	@cd terraform/deployments/control-plane/azure && terraform apply -auto-approve -var-file="examples/dev.tfvars"
+	@echo "Step 2: Extracting infrastructure secrets..."
+	@./scripts/extract-infrastructure-secrets.sh
+	@echo "Step 3: Installing ArgoCD..."
+	@make install-argocd
+	@echo "Step 4: Setting up GitOps..."
+	@make setup-gitops
+	@echo "✓ GitOps deployment completed!"
+
+gitops-status: ## Check GitOps deployment status
+	@echo "Checking GitOps deployment status..."
+	@echo ""
+	@echo "=== ArgoCD Applications ==="
+	@kubectl get applications -n argocd 2>/dev/null || echo "✗ No ArgoCD applications found"
+	@echo ""
+	@echo "=== Tyk Pods Status ==="
+	@kubectl get pods -n tyk 2>/dev/null || echo "✗ No Tyk pods found (may still be deploying)"
+	@echo ""
+	@echo "=== Tyk Services Status ==="
+	@kubectl get services -n tyk 2>/dev/null || echo "✗ No Tyk services found (may still be deploying)"
 
 # Monitoring commands
 logs-mdcb: ## Show MDCB logs

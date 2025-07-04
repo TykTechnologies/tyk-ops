@@ -1,152 +1,272 @@
-# Tyk Control Plane Deployment Playbook
+# Tyk Control Plane Operations Repository
 
-A deployment playbook for Tyk API Management using infrastructure-as-code practices.
+This repository provides comprehensive deployment solutions for Tyk Control Plane, supporting both traditional script-based deployment and modern GitOps workflows.
 
-## What This Provides
+## 🚀 Quick Start
 
-Initially, we are focussing on Azure, however there are plans to extend this to EKS and GKE also.
-
-- **Complete Infrastructure**: Azure Kubernetes Service (AKS), PostgreSQL, Redis with Terraform
-- **Automated Secret Management**: Terraform outputs → Kubernetes secrets → Helm values
-- **Production-Ready Components**: Dashboard, Gateway, MDCB, Pump, Developer Portal, Tyk Operator
-- **One-Command Deployment**: Infrastructure to running Control Plane in minutes
-- **Extensible Foundation**: Configurable for customer requirements
-
-## Quick Start
-
-### Prerequisites
-- Azure CLI installed and configured (`az login`)
-- Terraform >= 1.0
-- kubectl installed
-- Helm 3.x installed
-
-### Complete Deployment (5 minutes)
+### Traditional Helm Deployment
 ```bash
-# 1. Deploy everything (infrastructure + Tyk Control Plane)
-make fresh-deploy
-
-# 2. Check deployment status
-make status
-
-# 3. Get access information
-kubectl get services -n tyk
+# One-command Helm-based deployment
+make helm-deploy
 ```
 
-## Components Deployed
-
-### Infrastructure (Terraform)
-- **AKS Cluster**: Kubernetes cluster for running Tyk components
-- **PostgreSQL Flexible Server**: Database for Tyk Dashboard and Portal
-- **Redis Cache**: Session storage and rate limiting
-- **Virtual Network**: Security-focused subnet configuration
-
-### Tyk Components (Helm)
-- **Tyk Dashboard**: API management interface
-- **Tyk Gateway**: API Gateway for control plane
-- **Tyk MDCB**: Multi-Data Center Bridge for data plane management
-- **Tyk Pump**: Analytics data processor
-- **Tyk Developer Portal**: API developer portal
-- **Tyk Operator**: Kubernetes-native API Management
-
-## Complete Workflow
-
-### 1. Infrastructure Deployment
+### GitOps Deployment
 ```bash
-cd terraform/deployments/control-plane/azure
-terraform init
+# One-command GitOps deployment
+make gitops-deploy
+```
+
+## 📁 Repository Structure
+
+```
+tyk-ops/
+├── terraform/                     # Infrastructure as Code
+│   └── deployments/control-plane/ # Terraform configurations
+├── kubernetes/                    # Kubernetes manifests
+│   └── tyk-control-plane/         # Helm values and configs
+├── gitops/                        # GitOps manifests
+│   ├── applications/              # ArgoCD applications
+│   ├── prerequisites/             # Prerequisites (cert-manager, CRDs)
+│   └── control-plane/             # Control plane manifests
+├── scripts/                       # Deployment scripts
+│   ├── install-argocd.sh         # ArgoCD installation
+│   ├── setup-gitops.sh           # GitOps setup
+│   └── [traditional scripts...]
+└── docs/                          # Documentation
+    ├── deployment-playbook.md     # Traditional deployment guide
+    └── gitops-deployment-guide.md # GitOps deployment guide
+```
+
+## 🎯 Deployment Options
+
+### 1. Traditional Helm-Based Deployment
+
+Perfect for getting started quickly or when you need manual control:
+
+```bash
+# Deploy infrastructure
 terraform apply -var-file="examples/dev.tfvars"
-```
 
-### 2. Extract Infrastructure Secrets
-```bash
-# Extracts Terraform outputs to Kubernetes configuration
+# Extract secrets
 ./scripts/extract-infrastructure-secrets.sh
-```
 
-### 3. Setup Kubernetes Prerequisites
-```bash
-# Installs cert-manager, creates namespaces, adds Helm repositories
+# Setup prerequisites
 ./scripts/setup-cluster-prerequisites.sh
-```
 
-### 4. Deploy Tyk Control Plane
-```bash
-# Deploys all Tyk components with proper secret management
+# Deploy Tyk Control Plane
 ./scripts/deploy-tyk-control-plane.sh
 ```
 
-## Secret Management Flow
+**Benefits:**
+- Quick setup
+- Manual control
+- Easy troubleshooting
+- Immediate feedback
 
-```mermaid
-graph LR
-    A[Terraform Outputs] --> B[extract-infrastructure-secrets.sh]
-    B --> C[infrastructure.env]
-    C --> D[Kubernetes Secrets]
-    D --> E[Helm Values]
-    E --> F[Tyk Components]
-```
+### 2. GitOps with ArgoCD
 
-1. **Terraform** outputs database and Redis connection details
-2. **Extract script** creates `infrastructure.env` with connection strings
-3. **Deploy script** creates Kubernetes secrets from environment variables
-4. **Helm charts** consume secrets via environment variables
-5. **Tyk components** use the secrets for database and Redis connections
-
-## Available Commands
+Modern, production-ready approach for scalable deployments:
 
 ```bash
-# Complete fresh deployment
-make fresh-deploy
-
-# Individual steps
-make setup-prerequisites    # Setup cluster prerequisites
-make deploy                # Deploy Tyk Control Plane only
-
-# Monitoring
-make status                # Check deployment status
-make logs-all             # View logs from all components
-make logs-dashboard       # Dashboard logs only
-make logs-mdcb           # MDCB logs only
-make logs-portal         # Portal logs only
-```
-
-## Configuration
-
-### Environment Examples
-- `terraform/deployments/control-plane/azure/examples/dev.tfvars` - Development environment
-- `terraform/deployments/control-plane/azure/examples/staging.tfvars` - Staging environment  
-- `terraform/deployments/control-plane/azure/examples/prod.tfvars` - Production environment
-
-### Customization Points
-- **Infrastructure sizing**: Modify `*.tfvars` files
-- **Tyk configuration**: Edit `kubernetes/tyk-control-plane/values.yaml`
-- **Licenses**: Update `kubernetes/tyk-control-plane/.env`
-
-## Connecting Data Planes
-
-After deployment, connect Tyk Data Planes using:
-
-```bash
-# Get connection details
-kubectl get services -n tyk
-
-# MDCB connection endpoint
-MDCB_ENDPOINT=$(kubectl get service mdcb-svc-tyk-cp-tyk-mdcb -n tyk -o jsonpath='{.status.loadBalancer.ingress[0].ip}'):9091
-```
-
-## Documentation
-
-- [Complete Deployment Playbook](docs/deployment-playbook.md) - Detailed step-by-step guide
-- [Architecture Overview](docs/tyk-control-plane-deployment.md) - Component relationships
-- [Terraform Guide](docs/terraform/deployment-guide.md) - Infrastructure deployment details
-
-## Cleanup
-
-```bash
-# Remove Tyk Control Plane
-helm uninstall tyk-cp -n tyk
-
-# Destroy infrastructure
+# 1. Provision infrastructure (AKS cluster + databases)
 cd terraform/deployments/control-plane/azure
-terraform destroy -var-file="examples/dev.tfvars"
+terraform apply -var-file="examples/dev.tfvars"
+
+# 2. Extract secrets and configure kubectl
+./scripts/extract-infrastructure-secrets.sh
+
+# 3. Install ArgoCD on the provisioned cluster
+make install-argocd
+
+# 4. Setup Tyk applications in ArgoCD (auto-detects your Git repo)
+make setup-gitops
+
+# 5. Monitor ArgoCD deployment (Tyk deploys automatically)
+make gitops-status
 ```
+
+**🔄 How GitOps Works**: Step 4 creates ArgoCD applications that automatically deploy:
+- **Prerequisites**: cert-manager, Tyk Operator CRDs, namespaces
+- **Tyk Control Plane**: Dashboard, Gateway, MDCB, Pump, Developer Portal, Operator
+
+**� Demo Repository**: Fork this repository and the setup script automatically detects your fork and configures ArgoCD to use it!
+
+**Benefits:**
+- Declarative configuration
+- Automated synchronization
+- Audit trail and rollback
+- Multi-environment support
+
+## 🏗️ Architecture
+
+### Components Deployed
+- **Tyk Dashboard**: API management interface
+- **Tyk Gateway**: API gateway for control plane
+- **Tyk MDCB**: Multi-Data Center Bridge
+- **Tyk Pump**: Analytics processor
+- **Tyk Developer Portal**: API portal
+- **Tyk Operator**: Kubernetes-native API management
+
+### Infrastructure Support
+- **Azure AKS**: Current implementation
+- **AWS EKS**: Planned support
+- **GCP GKE**: Planned support
+- **DigitalOcean DOKS**: Planned support
+
+## 🔧 Configuration
+
+### Environment Files
+- `.env`: Tyk licenses and admin credentials
+- `infrastructure.env`: Generated from Terraform outputs
+
+### Terraform Variables
+- `dev.tfvars`: Development environment
+- `staging.tfvars`: Staging environment
+- `prod.tfvars`: Production environment
+
+## 📊 Monitoring
+
+### Check Deployment Status
+```bash
+# Traditional deployment
+make status
+
+# GitOps deployment
+make gitops-status
+```
+
+### Access Services
+```bash
+# Tyk Dashboard
+kubectl port-forward -n tyk svc/tyk-cp-tyk-dashboard 3000:3000
+
+# Developer Portal
+kubectl port-forward -n tyk svc/tyk-cp-tyk-dev-portal 3001:3001
+
+# Tyk Gateway
+kubectl port-forward -n tyk svc/tyk-cp-tyk-gateway 8080:8080
+```
+
+### ArgoCD Dashboard (GitOps)
+```bash
+# Access ArgoCD UI
+kubectl port-forward svc/argocd-server -n argocd 8080:443
+# Open: https://localhost:8080
+```
+
+## 🛠️ Available Commands
+
+### Traditional Helm Deployment
+```bash
+make setup-prerequisites  # Install prerequisites
+make deploy               # Deploy Tyk Control Plane
+make helm-deploy          # Complete Helm-based deployment
+make status              # Check deployment status
+```
+
+### GitOps Deployment
+```bash
+make install-argocd      # Install ArgoCD
+make setup-gitops        # Setup GitOps applications
+make gitops-deploy       # Complete GitOps deployment
+make gitops-status       # Check GitOps status
+```
+
+### Monitoring Commands
+```bash
+make logs-dashboard      # Show Dashboard logs
+make logs-mdcb          # Show MDCB logs
+make logs-portal        # Show Portal logs
+make logs-all           # Show all component logs
+```
+
+## 📚 Documentation
+
+### Deployment Guides
+- **[Traditional Deployment Playbook](docs/deployment-playbook.md)**: Complete guide for script-based deployment
+- **[GitOps Deployment Guide](docs/gitops-deployment-guide.md)**: Comprehensive ArgoCD-based deployment
+- **[Terraform Deployment Guide](docs/terraform/deployment-guide.md)**: Infrastructure provisioning details
+
+### Architecture Documentation
+- **[Architecture Decisions](docs/terraform/architecture-decisions.md)**: Infrastructure design decisions
+- **[Tyk Control Plane Deployment](docs/tyk-control-plane-deployment.md)**: Component-specific deployment details
+
+## 🔐 Security
+
+### Secret Management
+- Infrastructure secrets generated from Terraform outputs
+- Kubernetes secrets created automatically
+- No secrets committed to Git repository
+- Support for external secret management (Vault, External Secrets Operator)
+
+### Network Security
+- All services deployed with ClusterIP (no internet exposure)
+- SSL/TLS enabled for all communications
+- Network policies can be applied for additional security
+
+## 🌍 Multi-Environment Support
+
+### Environment Configuration
+```bash
+# Development
+terraform apply -var-file="examples/dev.tfvars"
+
+# Staging
+terraform apply -var-file="examples/staging.tfvars"
+
+# Production
+terraform apply -var-file="examples/prod.tfvars"
+```
+
+### GitOps Branch Strategy
+- **main**: Production deployments
+- **staging**: Staging deployments
+- **develop**: Development deployments
+
+## 🚨 Troubleshooting
+
+### Common Issues
+1. **Tyk Operator CrashLoopBackOff**: Check CRD installation
+2. **MDCB Issues**: Verify license and security secrets
+3. **Database Connection**: Check PostgreSQL connection strings
+4. **ArgoCD Sync Issues**: Check application status and logs
+
+### Get Help
+```bash
+# Check all pods
+kubectl get pods -n tyk
+
+# Check recent events
+kubectl get events -n tyk --sort-by='.lastTimestamp'
+
+# Check ArgoCD applications (GitOps)
+kubectl get applications -n argocd
+```
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 🆘 Support
+
+For issues and questions:
+- Check the troubleshooting sections in the documentation
+- Review the logs using the provided commands
+- Open an issue in this repository
+- Contact the Tyk team for enterprise support
+
+---
+
+**Get started with Tyk Control Plane today!** 🚀
+
+Choose your deployment method:
+- **Quick Start**: `make helm-deploy` (Traditional Helm)
+- **Production Ready**: `make gitops-deploy` (GitOps)

@@ -51,27 +51,23 @@ make setup-tyk-applications
 make gitops-status
 ```
 
-## 🔄 For Customers
+## 🔄 For Demo Users
 
-To use this in your environment:
+To use this demo:
 
-1. **Fork this repository**
-2. **Update repository URLs** in:
-   - `gitops/applications/root-app.yaml`
-   - `scripts/install-argocd.sh`
-3. **Customize configurations** as needed
-4. **Run the deployment scripts**
+1. **Fork this repository** (GitOps manifests already included)
+2. **Run the deployment scripts** (auto-detects your fork)
+3. **Customize configurations** as needed (optional)
+
+The setup script automatically detects your forked repository and configures all ArgoCD applications to use it!
 
 ## 🛠️ Customization
 
-### Change Repository URL
-Update the `repoURL` in all ArgoCD applications:
-
-```yaml
-spec:
-  source:
-    repoURL: https://github.com/YOUR-ORG/tyk-ops  # <- Update this
-```
+### Repository Auto-Detection
+The `setup-gitops.sh` script automatically:
+- Detects your Git repository URL using `git remote get-url origin`
+- Updates all ArgoCD applications to use your repository
+- No manual URL changes needed!
 
 ### Environment-Specific Values
 Create environment-specific value files:
