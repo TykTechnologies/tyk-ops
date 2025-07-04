@@ -1,22 +1,22 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: tyk-control-plane-helm
+  name: tyk-control-plane
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: "3"
+    argocd.argoproj.io/sync-wave: "1"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
 spec:
   project: default
   source:
     chart: tyk-control-plane
     repoURL: https://helm.tyk.io/public/helm/charts/
-    targetRevision: 1.9.0
+    targetRevision: 1.8.0
     helm:
       releaseName: tyk-cp
-      valueFiles:
-        - values.yaml
       values: |
-        # GitOps-specific overrides
+        # Tyk Control Plane GitOps Values
         global:
           components:
             bootstrap: true
@@ -26,60 +26,71 @@ spec:
             mdcb: true
             devPortal: true
             operator: true
-        
-        # Ensure all services are ClusterIP for security
+
+        # All services as ClusterIP for security
         tyk-gateway:
           gateway:
+            image:
+              tag: v5.8.1
             service:
               type: ClusterIP
               port: 8080
-        
+            ingress:
+              enabled: false
+
         tyk-dashboard:
           dashboard:
+            image:
+              tag: v5.8.1
             service:
               type: ClusterIP
               port: 3000
-        
+            ingress:
+              enabled: false
+
         tyk-mdcb:
           mdcb:
+            image:
+              tag: v2.8.1
             service:
               type: ClusterIP
               port: 9091
-        
+            ingress:
+              enabled: false
+
         tyk-dev-portal:
+          enabled: true
+          image:
+            tag: v1.13.2
           service:
             type: ClusterIP
             port: 3001
+          ingress:
+            enabled: false
+
+        tyk-operator:
+          image:
+            tag: v1.2.0
+
+        # External services disabled
+        redis:
+          enabled: false
+        postgresql:
+          enabled: false
   destination:
     server: https://kubernetes.default.svc
     namespace: tyk
   syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
     syncOptions:
       - CreateNamespace=true
-      - RespectIgnoreDifferences=true
     retry:
-      limit: 5
+      limit: 3
       backoff:
         duration: 5s
         factor: 2
-        maxDuration: 5m
-  revisionHistoryLimit: 10
-  ignoreDifferences:
-    - group: apps
-      kind: Deployment
-      managedFieldsManagers:
-        - tyk-operator
-    - group: ""
-      kind: Secret
-      managedFieldsManagers:
-        - tyk-bootstrap
+        maxDuration: 1m
   info:
-    - name: 'Components'
-      value: 'Dashboard, Gateway, MDCB, Pump, Developer Portal, Operator'
+    - name: 'Description'
+      value: 'Tyk Control Plane - Direct Helm deployment'
     - name: 'Prerequisites'
-      value: 'Requires cert-manager and Tyk Operator CRDs'
-    - name: 'Notes'
-      value: 'Secrets must be created before deployment'
+      value: 'Requires cert-manager and secrets to be created manually'

@@ -12,7 +12,7 @@ spec:
     targetRevision: HEAD
     path: gitops/applications
     directory:
-      recurse: true
+      recurse: false
       exclude: 'root-app.yaml'
   destination:
     server: https://kubernetes.default.svc
@@ -23,14 +23,8 @@ spec:
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
-    retry:
-      limit: 5
-      backoff:
-        duration: 5s
-        factor: 2
-        maxDuration: 3m
   info:
     - name: 'Description'
       value: 'Root application managing Tyk Control Plane GitOps deployment'
     - name: 'Components'
-      value: 'Prerequisites (cert-manager, CRDs) and Control Plane (Tyk components)'
+      value: 'Prerequisites and Control Plane applications'

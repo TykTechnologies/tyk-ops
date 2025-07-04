@@ -34,9 +34,3 @@ spec:
         duration: 5s
         factor: 2
         maxDuration: 3m
-  revisionHistoryLimit: 10
-  ignoreDifferences:
-    - group: apiextensions.k8s.io
-      kind: CustomResourceDefinition
-      managedFieldsManagers:
-        - cert-manager

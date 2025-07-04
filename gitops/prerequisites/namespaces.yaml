@@ -4,7 +4,6 @@ metadata:
   name: tyk
   labels:
     name: tyk
-    app.kubernetes.io/name: tyk
     app.kubernetes.io/managed-by: argocd
   annotations:
     argocd.argoproj.io/sync-wave: "0"
@@ -15,7 +14,6 @@ metadata:
   name: cert-manager
   labels:
     name: cert-manager
-    app.kubernetes.io/name: cert-manager
     app.kubernetes.io/managed-by: argocd
   annotations:
     argocd.argoproj.io/sync-wave: "0"

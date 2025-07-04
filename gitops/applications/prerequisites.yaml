@@ -1,10 +1,10 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: tyk-control-plane
+  name: tyk-prerequisites
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/sync-wave: "0"
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
@@ -12,10 +12,9 @@ spec:
   source:
     repoURL: https://github.com/TykTechnologies/tyk-ops
     targetRevision: HEAD
-    path: gitops/control-plane
+    path: gitops/prerequisites
   destination:
     server: https://kubernetes.default.svc
-    namespace: tyk
   syncPolicy:
     automated:
       prune: true
@@ -30,6 +29,6 @@ spec:
         maxDuration: 3m
   info:
     - name: 'Description'
-      value: 'Tyk Control Plane - API Management Platform'
-    - name: 'Prerequisites'
-      value: 'Requires tyk-prerequisites to be synced first'
+      value: 'Prerequisites for Tyk Control Plane'
+    - name: 'Components'
+      value: 'cert-manager, Tyk Operator CRDs, namespaces'

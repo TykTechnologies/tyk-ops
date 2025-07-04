@@ -1,7 +1,7 @@
 # Makefile for Tyk Control Plane Operations
 # This file contains commands to manage traditional and GitOps deployments
 
-.PHONY: help setup-prerequisites deploy helm-deploy fresh-deploy status install-argocd setup-gitops setup-tyk-applications gitops-deploy gitops-status
+.PHONY: help setup-prerequisites deploy helm-deploy fresh-deploy status install-argocd create-secrets setup-gitops setup-tyk-applications gitops-deploy gitops-status
 
 # Load environment variables if they exist
 -include kubernetes/tyk-control-plane/infrastructure.env
@@ -49,6 +49,21 @@ install-argocd: ## Install ArgoCD on the cluster
 	@chmod +x scripts/install-argocd.sh
 	@./scripts/install-argocd.sh && echo "✓ ArgoCD installation completed" || echo "✗ ArgoCD installation failed"
 
+create-secrets: ## Create Kubernetes secrets from infrastructure.env
+	@echo "Creating Kubernetes secrets..."
+	@if [ ! -f "kubernetes/tyk-control-plane/infrastructure.env" ]; then \
+		echo "✗ infrastructure.env not found. Run './scripts/extract-infrastructure-secrets.sh' first"; \
+		exit 1; \
+	fi
+	@echo "Creating tyk namespace..."
+	@kubectl create namespace tyk --dry-run=client -o yaml | kubectl apply -f -
+	@echo "Creating secrets from infrastructure.env..."
+	@kubectl create secret generic tyk-conf \
+		--from-env-file=kubernetes/tyk-control-plane/infrastructure.env \
+		--namespace=tyk \
+		--dry-run=client -o yaml | kubectl apply -f -
+	@echo "✓ Secrets created successfully"
+
 setup-gitops: ## Setup GitOps (create secrets and deploy ArgoCD applications)
 	@echo "Setting up GitOps deployment..."
 	@chmod +x scripts/setup-gitops.sh
@@ -64,8 +79,12 @@ gitops-deploy: ## Complete GitOps deployment (infrastructure + ArgoCD + applicat
 	@./scripts/extract-infrastructure-secrets.sh
 	@echo "Step 3: Installing ArgoCD..."
 	@make install-argocd
-	@echo "Step 4: Setting up GitOps..."
+	@echo "Step 4: Committing GitOps manifests to Git..."
+	@git add gitops/ && git commit -m "Add GitOps manifests" && git push || echo "⚠️ Git commit failed (manifests may already be committed)"
+	@echo "Step 5: Setting up GitOps..."
 	@make setup-gitops
+	@echo "Step 6: Checking deployment status..."
+	@make gitops-status
 	@echo "✓ GitOps deployment completed!"
 
 gitops-status: ## Check GitOps deployment status

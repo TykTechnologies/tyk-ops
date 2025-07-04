@@ -1,106 +1,44 @@
+# Tyk Operator CRDs - Applied directly via ArgoCD
+# These CRDs will be fetched from the Tyk repository
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tyk-operator-crds
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+data:
+  install-script: |
+    #!/bin/bash
+    set -e
+    echo "Installing Tyk Operator CRDs v1.2.0..."
+    kubectl apply -f https://raw.githubusercontent.com/TykTechnologies/tyk-charts/refs/heads/main/tyk-operator-crds/crd-v1.2.0.yaml
+---
 apiVersion: batch/v1
 kind: Job
 metadata:
   name: install-tyk-operator-crds
-  namespace: tyk
+  namespace: argocd
   annotations:
     argocd.argoproj.io/sync-wave: "2"
     argocd.argoproj.io/hook: PreSync
     argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
 spec:
   template:
-    metadata:
-      labels:
-        app: tyk-operator-crds-installer
     spec:
       restartPolicy: OnFailure
-      serviceAccountName: tyk-operator-crds-installer
+      serviceAccountName: argocd-application-controller
       containers:
       - name: install-crds
         image: bitnami/kubectl:latest
         command:
-        - /bin/bash
+        - /bin/sh
         - -c
         - |
-          set -euo pipefail
-          
           echo "Installing Tyk Operator CRDs..."
-          
-          # Default version (fallback)
-          OPERATOR_VERSION="v1.2.0"
-          
-          # Try to get version from values.yaml if available
-          if [ -f /config/values.yaml ]; then
-            DETECTED_VERSION=$(grep -A 2 "tyk-operator:" /config/values.yaml | grep "tag:" | awk '{print $2}' | tr -d '"' || echo "")
-            if [ -n "$DETECTED_VERSION" ]; then
-              OPERATOR_VERSION="$DETECTED_VERSION"
-              echo "Detected Tyk Operator version: $OPERATOR_VERSION"
-            fi
-          fi
-          
-          # Construct CRD URL
-          CRD_URL="https://raw.githubusercontent.com/TykTechnologies/tyk-charts/refs/heads/main/tyk-operator-crds/crd-${OPERATOR_VERSION}.yaml"
-          
-          echo "Installing CRDs from: $CRD_URL"
-          
-          # Check if CRDs are already installed
-          if kubectl get crd apidefinitions.tyk.tyk.io &> /dev/null && kubectl get crd tykoasapidefinitions.tyk.tyk.io &> /dev/null; then
-            echo "Tyk Operator CRDs already installed"
+          if kubectl get crd apidefinitions.tyk.tyk.io &> /dev/null; then
+            echo "CRDs already installed"
             exit 0
           fi
-          
-          # Install CRDs
-          if kubectl apply -f "$CRD_URL"; then
-            echo "Successfully installed Tyk Operator CRDs $OPERATOR_VERSION"
-          else
-            echo "Failed to install CRDs for version $OPERATOR_VERSION, trying fallback v1.2.0"
-            kubectl apply -f "https://raw.githubusercontent.com/TykTechnologies/tyk-charts/refs/heads/main/tyk-operator-crds/crd-v1.2.0.yaml"
-          fi
-          
-          echo "Verifying CRDs installation..."
-          kubectl get crd apidefinitions.tyk.tyk.io
-          kubectl get crd tykoasapidefinitions.tyk.tyk.io
+          kubectl apply -f https://raw.githubusercontent.com/TykTechnologies/tyk-charts/refs/heads/main/tyk-operator-crds/crd-v1.2.0.yaml
           echo "CRDs installation complete"
-        volumeMounts:
-        - name: values-config
-          mountPath: /config
-          readOnly: true
-      volumes:
-      - name: values-config
-        configMap:
-          name: tyk-values-config
-          optional: true
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: tyk-operator-crds-installer
-  namespace: tyk
-  annotations:
-    argocd.argoproj.io/sync-wave: "1"
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: tyk-operator-crds-installer
-  annotations:
-    argocd.argoproj.io/sync-wave: "1"
-rules:
-- apiGroups: ["apiextensions.k8s.io"]
-  resources: ["customresourcedefinitions"]
-  verbs: ["get", "list", "create", "update", "patch"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: tyk-operator-crds-installer
-  annotations:
-    argocd.argoproj.io/sync-wave: "1"
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: tyk-operator-crds-installer
-subjects:
-- kind: ServiceAccount
-  name: tyk-operator-crds-installer
-  namespace: tyk
