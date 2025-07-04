@@ -15,16 +15,16 @@ spec:
     targetRevision: 3.0.0
     helm:
       releaseName: tyk-cp
-      values: |
-        # Tyk Control Plane GitOps Values
+      valuesObject:
+        # Tyk Control Plane GitOps Values - using valuesObject for secret references
         global:
           components:
-            bootstrap: true
+            bootstrap: false
             dashboard: true
             gateway: true
-            pump: true
-            mdcb: true
-            devPortal: true
+            pump: false
+            mdcb: false
+            devPortal: false
             operator: true
 
         # All services as ClusterIP for security
@@ -75,6 +75,7 @@ spec:
         # External services disabled
         redis:
           enabled: false
+          
         postgresql:
           enabled: false
   destination:
