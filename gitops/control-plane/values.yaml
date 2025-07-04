@@ -1,0 +1,303 @@
+# Tyk Control Plane Helm Chart Configuration for GitOps
+# This configuration assumes secrets are created beforehand via extract-infrastructure-secrets.sh
+#
+# DEMO REPOSITORY NOTE:
+# This file references Kubernetes secrets that are created by the setup-gitops.sh script
+# These secrets contain customer-specific infrastructure details and should NOT be committed to Git
+#
+# For customers: Copy this repository and customize the secret names/keys as needed
+
+global:
+  # PostgreSQL Configuration (references existing secrets)
+  postgres:
+    host:
+      secretKeyRef:
+        name: tyk-postgres-secret
+        key: host
+    port: 5432
+    user:
+      secretKeyRef:
+        name: tyk-postgres-secret
+        key: user
+    password:
+      secretKeyRef:
+        name: tyk-postgres-secret
+        key: password
+    database:
+      secretKeyRef:
+        name: tyk-postgres-secret
+        key: database
+    sslmode: require
+
+  # Redis Configuration (references existing secrets)
+  redis:
+    addrs:
+      - secretKeyRef:
+          name: tyk-redis-secret
+          key: addr
+    pass: 
+      secretKeyRef:
+        name: tyk-redis-secret
+        key: password
+    enableCluster: false
+    useSSL: true
+
+  # Tyk License Configuration (references existing secrets)
+  license:
+    dashboard: 
+      secretKeyRef:
+        name: tyk-license-secret
+        key: dashboard
+    mdcb: 
+      secretKeyRef:
+        name: tyk-license-secret
+        key: mdcb
+    operator: 
+      secretKeyRef:
+        name: tyk-license-secret
+        key: operator
+    
+  # Enterprise Developer Portal License
+  enterprisePortal:
+    license: 
+      secretKeyRef:
+        name: tyk-license-secret
+        key: portal
+
+  # Security Configuration (references existing secrets)
+  secrets:
+    APISecret: 
+      secretKeyRef:
+        name: tyk-security-secret
+        key: api-secret
+    AdminSecret: 
+      secretKeyRef:
+        name: tyk-security-secret
+        key: admin-secret
+
+  # Global Admin User Configuration (references existing secrets)
+  adminUser:
+    firstName: 
+      secretKeyRef:
+        name: tyk-admin-secret
+        key: first-name
+    lastName: 
+      secretKeyRef:
+        name: tyk-admin-secret
+        key: last-name
+    email: 
+      secretKeyRef:
+        name: tyk-admin-secret
+        key: email
+    password: 
+      secretKeyRef:
+        name: tyk-admin-secret
+        key: password
+
+  # Component Enablement
+  components:
+    bootstrap: true
+    dashboard: true
+    gateway: true
+    pump: true
+    mdcb: true
+    devPortal: true
+    operator: true
+
+  # Service Ports Configuration
+  servicePorts:
+    gateway: 8080
+    dashboard: 3000
+    mdcb: 9091
+
+# Tyk Gateway Configuration
+tyk-gateway:
+  gateway:
+    # Override default Gateway version to latest LTS
+    image:
+      tag: v5.8.1
+      
+    # Service Configuration - ClusterIP only (secure)
+    service:
+      type: ClusterIP
+      port: 8080
+      
+    # Disable ingress for security
+    ingress:
+      enabled: false
+      
+    # Resource Configuration
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "250m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+
+# Tyk Dashboard Configuration
+tyk-dashboard:
+  dashboard:
+    # Override default Dashboard version to latest LTS
+    image:
+      tag: v5.8.1
+      
+    # Service Configuration - ClusterIP only (secure)
+    service:
+      type: ClusterIP
+      port: 3000
+      
+    # Disable ingress for security
+    ingress:
+      enabled: false
+      
+    # Resource Configuration
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "250m"
+      limits:
+        memory: "1Gi"
+        cpu: "500m"
+
+# Tyk MDCB Configuration
+tyk-mdcb:
+  mdcb:
+    # Override default MDCB version to latest LTS
+    image:
+      tag: v2.8.1
+      
+    # MDCB License Configuration (from secret)
+    license: 
+      secretKeyRef:
+        name: tyk-license-secret
+        key: mdcb
+    
+    # Security Configuration for MDCB
+    security:
+      # Secret required for accessing secure HTTP endpoints
+      secret: 
+        secretKeyRef:
+          name: tyk-security-secret
+          key: mdcb-security-secret
+      # Enable secure HTTP endpoints for monitoring/debugging
+      enableHttpSecureEndpoints: true
+    
+    # Service Configuration - ClusterIP only (secure)
+    service:
+      type: ClusterIP
+      port: 9091
+      
+    # Disable ingress for security
+    ingress:
+      enabled: false
+      
+    # Resource Configuration
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "250m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+
+# Tyk Pump Configuration
+tyk-pump:
+  pump:
+    # Override default Pump version to latest LTS
+    image:
+      tag: v1.12.0
+      
+    # PostgreSQL backend configuration
+    backend:
+      - "postgres"
+      
+    # Resource Configuration
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "250m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+
+# Enterprise Developer Portal Configuration
+tyk-dev-portal:
+  # Enable Developer Portal
+  enabled: true
+  
+  # Override default EDP version to latest LTS
+  image:
+    tag: v1.13.2
+  
+  # Developer Portal License (from secret)
+  license: 
+    secretKeyRef:
+      name: tyk-license-secret
+      key: portal
+  
+  # Service Configuration - ClusterIP only (secure)
+  service:
+    type: ClusterIP
+    port: 3001
+    
+  # Disable ingress for security
+  ingress:
+    enabled: false
+    
+  # Database Configuration (PostgreSQL)
+  database:
+    dialect: "postgres"
+    connectionString: 
+      secretKeyRef:
+        name: tyk-postgres-secret
+        key: connection-string
+    
+  # Resource Configuration
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+
+# Redis (External - using Azure Redis Cache)
+redis:
+  # Disable internal Redis as we're using Azure Redis Cache
+  enabled: false
+
+# PostgreSQL (External - using Azure PostgreSQL Flexible Server)
+postgresql:
+  # Disable internal PostgreSQL as we're using Azure PostgreSQL
+  enabled: false
+
+# Tyk Operator Configuration
+tyk-operator:
+  # Override default Operator version to latest LTS
+  image:
+    tag: v1.2.0
+  
+  # Environment variables for Tyk Operator
+  envVars:
+    - name: TYK_HTTPS_INGRESS_PORT
+      value: "8443"
+    - name: TYK_HTTP_INGRESS_PORT
+      value: "8080"
+  
+  # Resource Configuration
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "200m"
+
+# Tyk Bootstrap Configuration
+tyk-bootstrap:
+  bootstrap:
+    # Enable dashboard bootstrap
+    dashboard: true
+    # Enable dev portal bootstrap
+    devPortal: true

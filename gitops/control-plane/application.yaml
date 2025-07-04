@@ -1,0 +1,85 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: tyk-control-plane-helm
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+spec:
+  project: default
+  source:
+    chart: tyk-control-plane
+    repoURL: https://helm.tyk.io/public/helm/charts/
+    targetRevision: 1.9.0
+    helm:
+      releaseName: tyk-cp
+      valueFiles:
+        - values.yaml
+      values: |
+        # GitOps-specific overrides
+        global:
+          components:
+            bootstrap: true
+            dashboard: true
+            gateway: true
+            pump: true
+            mdcb: true
+            devPortal: true
+            operator: true
+        
+        # Ensure all services are ClusterIP for security
+        tyk-gateway:
+          gateway:
+            service:
+              type: ClusterIP
+              port: 8080
+        
+        tyk-dashboard:
+          dashboard:
+            service:
+              type: ClusterIP
+              port: 3000
+        
+        tyk-mdcb:
+          mdcb:
+            service:
+              type: ClusterIP
+              port: 9091
+        
+        tyk-dev-portal:
+          service:
+            type: ClusterIP
+            port: 3001
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: tyk
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - RespectIgnoreDifferences=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 5m
+  revisionHistoryLimit: 10
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      managedFieldsManagers:
+        - tyk-operator
+    - group: ""
+      kind: Secret
+      managedFieldsManagers:
+        - tyk-bootstrap
+  info:
+    - name: 'Components'
+      value: 'Dashboard, Gateway, MDCB, Pump, Developer Portal, Operator'
+    - name: 'Prerequisites'
+      value: 'Requires cert-manager and Tyk Operator CRDs'
+    - name: 'Notes'
+      value: 'Secrets must be created before deployment'
