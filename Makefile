@@ -1,7 +1,7 @@
 # Makefile for Tyk Control Plane Operations
 # This file contains commands to manage traditional and GitOps deployments
 
-.PHONY: help setup-prerequisites deploy helm-deploy fresh-deploy status install-argocd create-secrets setup-gitops setup-tyk-applications gitops-deploy gitops-status
+.PHONY: help setup-prerequisites deploy helm-deploy fresh-deploy status install-argocd delete-argocd create-secrets setup-gitops setup-tyk-applications gitops-deploy gitops-status
 
 # Load environment variables if they exist
 -include kubernetes/tyk-control-plane/infrastructure.env
@@ -99,6 +99,43 @@ install-argocd: ## Install ArgoCD using Helm chart
 	@echo "[INFO] 2. Access ArgoCD UI with the credentials shown above"
 	@echo "[INFO] 3. Monitor application deployment in ArgoCD dashboard"
 	@echo "✓ ArgoCD installation completed"
+
+delete-argocd: ## Uninstall ArgoCD and clean up all resources including CRDs
+	@echo "Uninstalling ArgoCD..."
+	@echo "=========================================="
+	@echo "ArgoCD Cleanup for Tyk Control Plane"
+	@echo "=========================================="
+	@echo ""
+	@echo "[INFO] Checking if ArgoCD is installed..."
+	@if helm list -n argocd 2>/dev/null | grep -q argocd; then \
+		echo "[INFO] Uninstalling ArgoCD Helm release..."; \
+		helm uninstall argocd -n argocd; \
+		echo "[SUCCESS] ArgoCD Helm release uninstalled"; \
+	else \
+		echo "[INFO] ArgoCD Helm release not found"; \
+	fi
+	@echo ""
+	@echo "[INFO] Deleting ArgoCD namespace..."
+	@kubectl delete namespace argocd --ignore-not-found=true
+	@echo "[SUCCESS] ArgoCD namespace deleted"
+	@echo ""
+	@echo "[INFO] Cleaning up ArgoCD CRDs..."
+	@kubectl delete crd applications.argoproj.io --ignore-not-found=true
+	@kubectl delete crd applicationsets.argoproj.io --ignore-not-found=true
+	@kubectl delete crd appprojects.argoproj.io --ignore-not-found=true
+	@echo "[SUCCESS] ArgoCD CRDs cleaned up"
+	@echo ""
+	@echo "[INFO] Cleaning up cluster roles and bindings..."
+	@kubectl delete clusterrole argocd-application-controller --ignore-not-found=true
+	@kubectl delete clusterrole argocd-applicationset-controller --ignore-not-found=true
+	@kubectl delete clusterrole argocd-server --ignore-not-found=true
+	@kubectl delete clusterrolebinding argocd-application-controller --ignore-not-found=true
+	@kubectl delete clusterrolebinding argocd-applicationset-controller --ignore-not-found=true
+	@kubectl delete clusterrolebinding argocd-server --ignore-not-found=true
+	@echo "[SUCCESS] Cluster roles and bindings cleaned up"
+	@echo ""
+	@echo "[SUCCESS] 🎉 ArgoCD completely removed from cluster!"
+	@echo "✓ ArgoCD cleanup completed"
 
 create-secrets: ## Create Kubernetes secrets from infrastructure.env
 	@echo "Creating Kubernetes secrets..."
