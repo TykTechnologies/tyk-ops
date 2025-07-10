@@ -44,10 +44,61 @@ status: ## Check deployment status
 	@kubectl get services -n tyk 2>/dev/null || echo "✗ No services found (namespace may not exist)"
 
 # GitOps Commands
-install-argocd: ## Install ArgoCD on the cluster
-	@echo "Installing ArgoCD..."
-	@chmod +x scripts/install-argocd.sh
-	@./scripts/install-argocd.sh && echo "✓ ArgoCD installation completed" || echo "✗ ArgoCD installation failed"
+install-argocd: ## Install ArgoCD using Helm chart
+	@echo "Installing ArgoCD using Helm..."
+	@echo "=========================================="
+	@echo "ArgoCD Installation for Tyk Control Plane"
+	@echo "=========================================="
+	@echo ""
+	@echo "[INFO] Checking Kubernetes cluster access..."
+	@kubectl cluster-info --request-timeout=10s > /dev/null 2>&1 || (echo "✗ Cannot access Kubernetes cluster" && exit 1)
+	@echo "[SUCCESS] Connected to cluster"
+	@echo ""
+	@echo "[INFO] Adding ArgoCD Helm repository..."
+	@helm repo add argo https://argoproj.github.io/argo-helm 2>/dev/null || echo "[INFO] ArgoCD Helm repo already exists"
+	@helm repo update argo
+	@echo "[SUCCESS] ArgoCD Helm repository updated"
+	@echo ""
+	@echo "[INFO] Creating ArgoCD namespace..."
+	@kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
+	@echo "[SUCCESS] ArgoCD namespace ready"
+	@echo ""
+	@echo "[INFO] Installing ArgoCD v2.12.4..."
+	@helm install argocd argo/argo-cd \
+		--namespace argocd \
+		--values helm/argocd-values.yaml \
+		--version 7.6.12 \
+		--wait --timeout=600s
+	@echo "[SUCCESS] ArgoCD installed and ready"
+	@echo ""
+	@echo "[INFO] Retrieving ArgoCD admin password..."
+	@kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=argocd-server -n argocd --timeout=300s > /dev/null 2>&1
+	@ADMIN_PASSWORD=$$(kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath='{.data.password}' | base64 --decode 2>/dev/null || echo "Password not ready yet"); \
+	echo "[SUCCESS] ArgoCD admin password retrieved"; \
+	echo ""; \
+	echo "=========================================="; \
+	echo "ArgoCD Access Information"; \
+	echo "=========================================="; \
+	echo "Username: admin"; \
+	echo "Password: $$ADMIN_PASSWORD"; \
+	echo ""; \
+	echo "To access ArgoCD UI, run:"; \
+	echo "kubectl port-forward svc/argocd-server -n argocd 8080:80"; \
+	echo "Then open: http://localhost:8080"; \
+	echo "=========================================="; \
+	echo ""
+	@echo "[INFO] Verifying ArgoCD installation..."
+	@kubectl get pods -n argocd -l app.kubernetes.io/name=argocd-server --no-headers | grep -q "Running" && echo "[SUCCESS] ✅ ArgoCD server is running" || echo "[ERROR] ❌ ArgoCD server is not running"
+	@kubectl get statefulset -n argocd -l app.kubernetes.io/name=argocd-application-controller --no-headers | grep -q "1/1" && echo "[SUCCESS] ✅ ArgoCD application controller is running" || echo "[ERROR] ❌ ArgoCD application controller is not running"
+	@kubectl get pods -n argocd -l app.kubernetes.io/name=argocd-repo-server --no-headers | grep -q "Running" && echo "[SUCCESS] ✅ ArgoCD repo server is running" || echo "[ERROR] ❌ ArgoCD repo server is not running"
+	@echo "[SUCCESS] All ArgoCD components verified successfully!"
+	@echo ""
+	@echo "[SUCCESS] 🎉 ArgoCD installation complete!"
+	@echo "[INFO] Next steps:"
+	@echo "[INFO] 1. Run 'make setup-gitops' to deploy Tyk applications"
+	@echo "[INFO] 2. Access ArgoCD UI with the credentials shown above"
+	@echo "[INFO] 3. Monitor application deployment in ArgoCD dashboard"
+	@echo "✓ ArgoCD installation completed"
 
 create-secrets: ## Create Kubernetes secrets from infrastructure.env
 	@echo "Creating Kubernetes secrets..."

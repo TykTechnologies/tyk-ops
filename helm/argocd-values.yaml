@@ -1,0 +1,141 @@
+# ArgoCD Helm Values for Tyk Control Plane
+# Official ArgoCD Helm Chart Configuration
+
+# Global configuration
+global:
+  # Use specific version for consistency
+  image:
+    tag: "v2.12.4"
+
+# ArgoCD Server Configuration
+server:
+  # Enable insecure mode for easier access (can be changed for production)
+  insecure: true
+  
+  # Service configuration
+  service:
+    type: ClusterIP
+    port: 80
+    portName: http
+  
+  # Metrics configuration
+  metrics:
+    enabled: true
+    service:
+      type: ClusterIP
+      port: 8083
+
+# ArgoCD Repository Server Configuration
+repoServer:
+  # Enable metrics
+  metrics:
+    enabled: true
+    service:
+      type: ClusterIP
+      port: 8084
+
+# ArgoCD Application Controller Configuration
+controller:
+  # Enable metrics
+  metrics:
+    enabled: true
+    service:
+      type: ClusterIP
+      port: 8082
+
+# ArgoCD Dex Server Configuration (for OIDC/OAuth)
+dex:
+  enabled: true
+  metrics:
+    enabled: true
+    service:
+      type: ClusterIP
+      port: 5558
+
+# ArgoCD Redis Configuration
+redis:
+  enabled: true
+  metrics:
+    enabled: true
+    service:
+      type: ClusterIP
+      port: 6379
+
+# ArgoCD Notifications Controller
+notifications:
+  enabled: true
+  metrics:
+    enabled: true
+    service:
+      type: ClusterIP
+      port: 9001
+
+# ArgoCD ApplicationSet Controller
+applicationSet:
+  enabled: true
+  metrics:
+    enabled: true
+    service:
+      type: ClusterIP
+      port: 8080
+
+# ArgoCD Configuration
+configs:
+  # ArgoCD CM (main configuration)
+  cm:
+    # Enable repository configuration
+    repositories: |
+      - type: git
+        url: https://github.com/TykTechnologies/tyk-ops
+        name: tyk-ops
+    
+    # URL for ArgoCD server (will be updated based on ingress/port-forward)
+    url: https://localhost:8080
+    
+    # Enable local users
+    accounts.admin: apiKey, login
+    
+    # Application configuration
+    application.instanceLabelKey: argocd.argoproj.io/instance
+    
+    # Timeout settings
+    timeout.reconciliation: 180s
+    timeout.hard.reconciliation: 0s
+
+  # ArgoCD Parameters
+  params:
+    # Server configuration
+    server.insecure: true
+    server.grpc.web: true
+    
+    # Controller configuration
+    controller.status.processors: "20"
+    controller.operation.processors: "10"
+    controller.self.heal.timeout.seconds: "5"
+    controller.repo.server.timeout.seconds: "60"
+    
+    # Application configuration
+    application.sync.retry.duration: "30s"
+    application.sync.retry.max.duration: "5m"
+
+  # RBAC Configuration
+  rbac:
+    # Default policy
+    policy.default: role:readonly
+    
+    # Admin policy
+    policy.csv: |
+      p, role:admin, applications, *, */*, allow
+      p, role:admin, clusters, *, *, allow
+      p, role:admin, repositories, *, *, allow
+      p, role:admin, certificates, *, *, allow
+      p, role:admin, projects, *, *, allow
+      p, role:admin, accounts, *, *, allow
+      p, role:admin, gpgkeys, *, *, allow
+      p, role:admin, logs, *, *, allow
+      p, role:admin, exec, *, *, allow
+      g, admin, role:admin
+
+# Enable additional features
+createAggregateRoles: true
+createClusterRoles: true
