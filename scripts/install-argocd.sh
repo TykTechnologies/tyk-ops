@@ -76,9 +76,29 @@ install_argocd() {
     
     # Wait for ArgoCD to be ready
     log_info "Waiting for ArgoCD to be ready..."
+    log_info "Checking ArgoCD server deployment..."
     kubectl wait --for=condition=available --timeout=600s deployment/argocd-server -n "$ARGOCD_NAMESPACE"
-    kubectl wait --for=condition=available --timeout=600s deployment/argocd-application-controller -n "$ARGOCD_NAMESPACE"
+    log_info "Checking ArgoCD application controller statefulset..."
+    # Wait for StatefulSet to be ready (simpler approach)
+    local retries=0
+    local max_retries=60
+    while [ $retries -lt $max_retries ]; do
+        if kubectl get statefulset argocd-application-controller -n "$ARGOCD_NAMESPACE" -o jsonpath='{.status.readyReplicas}' | grep -q "1"; then
+            log_info "ArgoCD application controller is ready"
+            break
+        fi
+        log_info "Waiting for ArgoCD application controller... (attempt $((retries+1))/$max_retries)"
+        sleep 10
+        ((retries++))
+    done
+    
+    if [ $retries -eq $max_retries ]; then
+        log_error "ArgoCD application controller failed to become ready within timeout"
+        return 1
+    fi
+    log_info "Checking ArgoCD repo server deployment..."
     kubectl wait --for=condition=available --timeout=600s deployment/argocd-repo-server -n "$ARGOCD_NAMESPACE"
+    log_info "Checking ArgoCD redis deployment..."
     kubectl wait --for=condition=available --timeout=600s deployment/argocd-redis -n "$ARGOCD_NAMESPACE"
     
     log_success "ArgoCD installed and ready"
@@ -182,6 +202,7 @@ setup_argocd_cli() {
 # Verify installation
 verify_installation() {
     log_info "Verifying ArgoCD installation..."
+    log_info "Checking ArgoCD component health..."
     
     # Check ArgoCD components
     if kubectl get deployment -n "$ARGOCD_NAMESPACE" argocd-server &> /dev/null; then
@@ -197,9 +218,9 @@ verify_installation() {
         return 1
     fi
     
-    # Check ArgoCD application controller
-    if kubectl get deployment -n "$ARGOCD_NAMESPACE" argocd-application-controller &> /dev/null; then
-        local controller_ready=$(kubectl get deployment -n "$ARGOCD_NAMESPACE" argocd-application-controller -o jsonpath='{.status.readyReplicas}')
+    # Check ArgoCD application controller (StatefulSet in v2.12.4+)
+    if kubectl get statefulset -n "$ARGOCD_NAMESPACE" argocd-application-controller &> /dev/null; then
+        local controller_ready=$(kubectl get statefulset -n "$ARGOCD_NAMESPACE" argocd-application-controller -o jsonpath='{.status.readyReplicas}')
         if [[ "$controller_ready" -gt 0 ]]; then
             log_success "✅ ArgoCD application controller is running ($controller_ready replicas ready)"
         else
