@@ -3,91 +3,54 @@
 # Secrets are referenced via secretKeyRef and must be created beforehand
 
 global:
-  # PostgreSQL Configuration (references existing secrets)
+  # Storage configuration
+  storageType: postgres
+  
+  # PostgreSQL Configuration (references infrastructure secrets)
   postgres:
-    host: 
-      secretKeyRef:
-        name: tyk-postgres-secret
-        key: host
+    host:
+      valueFrom:
+        secretKeyRef:
+          name: tyk-infrastructure-secret
+          key: postgresHost
     port: 5432
-    user: 
-      secretKeyRef:
-        name: tyk-postgres-secret
-        key: user
-    password: 
-      secretKeyRef:
-        name: tyk-postgres-secret
-        key: password
-    database: 
-      secretKeyRef:
-        name: tyk-postgres-secret
-        key: database
+    user:
+      valueFrom:
+        secretKeyRef:
+          name: tyk-infrastructure-secret
+          key: postgresUser
+    password:
+      valueFrom:
+        secretKeyRef:
+          name: tyk-infrastructure-secret
+          key: postgresPassword
+    database:
+      valueFrom:
+        secretKeyRef:
+          name: tyk-infrastructure-secret
+          key: postgresDatabase
     sslmode: require
 
-  # Redis Configuration (references existing secrets)
+  # Redis Configuration (references infrastructure secrets)
   redis:
     addrs:
-      - secretKeyRef:
-          name: tyk-redis-secret
-          key: addr
-    pass: 
-      secretKeyRef:
-        name: tyk-redis-secret
-        key: password
+      - valueFrom:
+          secretKeyRef:
+            name: tyk-infrastructure-secret
+            key: redisHost
+    passSecret:
+      name: tyk-infrastructure-secret
+      keyName: redisPassword
     enableCluster: false
     useSSL: true
 
-  # Tyk License Configuration (references existing secrets)
-  license:
-    dashboard: 
-      secretKeyRef:
-        name: tyk-license-secret
-        key: dashboard
-    mdcb: 
-      secretKeyRef:
-        name: tyk-license-secret
-        key: mdcb
-    operator: 
-      secretKeyRef:
-        name: tyk-license-secret
-        key: operator
-    
-  # Enterprise Developer Portal License
-  enterprisePortal:
-    license: 
-      secretKeyRef:
-        name: tyk-license-secret
-        key: portal
-
-  # Security Configuration (references existing secrets)
+  # Use existing secrets for all Tyk configurations
   secrets:
-    APISecret: 
-      secretKeyRef:
-        name: tyk-security-secret
-        key: api-secret
-    AdminSecret: 
-      secretKeyRef:
-        name: tyk-security-secret
-        key: admin-secret
-
-  # Global Admin User Configuration (references existing secrets)
+    useSecretName: "tyk-control-plane-secret"
+  
+  # Admin user configuration
   adminUser:
-    firstName: 
-      secretKeyRef:
-        name: tyk-admin-secret
-        key: first-name
-    lastName: 
-      secretKeyRef:
-        name: tyk-admin-secret
-        key: last-name
-    email: 
-      secretKeyRef:
-        name: tyk-admin-secret
-        key: email
-    password: 
-      secretKeyRef:
-        name: tyk-admin-secret
-        key: password
+    useSecretName: "tyk-control-plane-secret"
 
   # Component Enablement
   components:
@@ -145,6 +108,7 @@ tyk-mdcb:
       port: 9091
     ingress:
       enabled: false
+    useSecretName: "tyk-control-plane-secret"
     resources:
       requests:
         memory: "256Mi"
@@ -178,6 +142,7 @@ tyk-dev-portal:
     port: 3001
   ingress:
     enabled: false
+  useSecretName: "tyk-control-plane-secret"
   resources:
     requests:
       memory: "256Mi"

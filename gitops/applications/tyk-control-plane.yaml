@@ -16,18 +16,54 @@ spec:
     helm:
       releaseName: tyk-cp
       valuesObject:
-        # Tyk Control Plane GitOps Values - using valuesObject for secret references
         global:
+          storageType: postgres
+          secrets:
+            useSecretName: "tyk-control-plane-secret"
+          adminUser:
+            useSecretName: "tyk-control-plane-secret"
+          postgres:
+            host:
+              valueFrom:
+                secretKeyRef:
+                  name: tyk-infrastructure-secret
+                  key: postgresHost
+            port: 5432
+            user:
+              valueFrom:
+                secretKeyRef:
+                  name: tyk-infrastructure-secret
+                  key: postgresUser
+            password:
+              valueFrom:
+                secretKeyRef:
+                  name: tyk-infrastructure-secret
+                  key: postgresPassword
+            database:
+              valueFrom:
+                secretKeyRef:
+                  name: tyk-infrastructure-secret
+                  key: postgresDatabase
+            sslmode: require
+          redis:
+            passSecret:
+              name: tyk-infrastructure-secret
+              keyName: redisPassword
+            addrs:
+              - valueFrom:
+                  secretKeyRef:
+                    name: tyk-infrastructure-secret
+                    key: redisHost
+            enableCluster: false
+            useSSL: true
           components:
-            bootstrap: false
+            bootstrap: true
             dashboard: true
             gateway: true
-            pump: false
-            mdcb: false
-            devPortal: false
+            pump: true
+            mdcb: true
+            devPortal: true
             operator: true
-
-        # All services as ClusterIP for security
         tyk-gateway:
           gateway:
             image:
@@ -37,7 +73,6 @@ spec:
               port: 8080
             ingress:
               enabled: false
-
         tyk-dashboard:
           dashboard:
             image:
@@ -47,7 +82,6 @@ spec:
               port: 3000
             ingress:
               enabled: false
-
         tyk-mdcb:
           mdcb:
             image:
@@ -57,7 +91,7 @@ spec:
               port: 9091
             ingress:
               enabled: false
-
+            useSecretName: "tyk-control-plane-secret"
         tyk-dev-portal:
           enabled: true
           image:
@@ -67,15 +101,12 @@ spec:
             port: 3001
           ingress:
             enabled: false
-
+          useSecretName: "tyk-control-plane-secret"
         tyk-operator:
           image:
             tag: v1.2.0
-
-        # External services disabled
         redis:
           enabled: false
-          
         postgresql:
           enabled: false
   destination:
@@ -95,6 +126,8 @@ spec:
         maxDuration: 1m
   info:
     - name: 'Description'
-      value: 'Tyk Control Plane - Direct Helm deployment'
+      value: 'Tyk Control Plane - GitOps deployment via ArgoCD'
     - name: 'Prerequisites'
-      value: 'Requires cert-manager and secrets to be created manually'
+      value: 'Requires infrastructure.env and .env secrets, and cert-manager'
+    - name: 'Components'
+      value: 'Gateway v5.8.1, Dashboard v5.8.1, MDCB v2.8.1, Pump, Portal, Operator'
