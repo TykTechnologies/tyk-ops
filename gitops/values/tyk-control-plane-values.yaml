@@ -21,7 +21,7 @@ global:
     # - adminUserLastName - sets .global.adminUser.lastName
     # - adminUserEmail- sets .global.adminUser.email
     # - adminUserPassword - sets .global.adminUser.password
-    useSecretName: ""
+    useSecretName: "tyk-control-plane-secret"
 
     # firstName corresponds to the first name of the admin user that will be created during the bootstrapping process.
     # It is used to set TYK_K8SBOOTSTRAP_TYK_ADMIN_FIRSTNAME
@@ -85,7 +85,7 @@ global:
     # AdminSecret - Admin user secret key
     # DashLicense - Tyk Dashboard license key
     # OperatorLicense - Tyk Operator license key
-    useSecretName: ""
+    useSecretName: "tyk-control-plane-secret"
 
   imageRegistry: ""
 
@@ -126,13 +126,13 @@ global:
     # masterName: ""
 
     # Redis password can also be provided via a secret. Provide the name of the secret and key below.
-    # passSecret:
-    #   name: ""
-    #   keyName: ""
+    passSecret:
+      name: "tyk-infrastructure-secret"
+      keyName: "redisPassword"
 
     # Enables SSL for Redis connection. Redis instance will have to support that.
     # Default value: false
-    # useSSL: false
+    useSSL: true
 
     # Allows usage of self-signed certificates when connecting to an encrypted Redis database.
     # sslInsecureSkipVerify: false
@@ -216,9 +216,9 @@ global:
     sslmode: disable
 
     # Connection string can also be set using a secret. Provide the name of the secret and key below.
-    # connectionStringSecret:
-    #   name: ""
-    #   keyName: ""
+    connectionStringSecret:
+      name: "tyk-infrastructure-secret"
+      keyName: "postgresConnectionString"
 
   # Choose the storageType for Tyk. [ "mongo", "postgres" ]
   storageType: &globalStorageType postgres
@@ -335,7 +335,7 @@ tyk-gateway:
       repository: tykio/tyk-gateway
 
       # image tag for Tyk Gateway
-      tag: v5.3.10
+      tag: v5.8.1
 
       # image pull policy for Tyk Gateway
       pullPolicy: IfNotPresent
@@ -1303,7 +1303,7 @@ tyk-dashboard:
       repository: tykio/tyk-dashboard
 
       # tag for Tyk Dashboard
-      tag: v5.3.10
+      tag: v5.8.1
 
       # image pull policy
       pullPolicy: Always
@@ -1446,7 +1446,7 @@ tyk-mdcb:
   # You should set following fields in the secret
   # - MDCBLicense - Sets MDCB license key
   # - securitySecret - Sets secret required for accessing secure HTTP endpoints
-    useSecretName: ""
+    useSecretName: "tyk-control-plane-secret"
 
     # Tyk MDCB license
     # It is used to set TYK_MDCB_LICENSE
@@ -1550,7 +1550,7 @@ tyk-mdcb:
       # image repository for Tyk MDCB
       repository: tykio/tyk-mdcb-docker
       # image tag for Tyk MDCB
-      tag: v2.8.0
+      tag: v2.8.1
       # image pull policy
       pullPolicy: IfNotPresent
 
@@ -1722,7 +1722,7 @@ tyk-dev-portal:
   # - DevPortalDatabaseConnectionString - Sets database connectionString for Developer Portal
   # - DevPortalAwsAccessKeyId - Sets AWS S3 Access Key ID
   # - DevPortalAwsSecretAccessKey - Sets AWS S3 Secret Access Key
-  useSecretName: ""
+  useSecretName: "tyk-control-plane-secret"
   # The hostname to bind the Developer Portal to.
   hostName: tyk-dev-portal.local
   # Developer Portal license.
