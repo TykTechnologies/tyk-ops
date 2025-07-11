@@ -1,0 +1,45 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: tyk-control-plane
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  sources:
+    - repoURL: https://helm.tyk.io/public/helm/charts/
+      chart: tyk-control-plane
+      targetRevision: "3.0.0"
+      helm:
+        releaseName: tyk-cp
+        valueFiles:
+          - $values/gitops/values/tyk-control-plane-values.yaml
+    - repoURL: https://github.com/TykTechnologies/tyk-ops.git
+      targetRevision: HEAD
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: tyk-cp
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+    retry:
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+      limit: 5
+  info:
+    - name: 'Description'
+      value: 'Tyk Control Plane - Step-by-step GitOps deployment'
+    - name: 'Chart Version'
+      value: '3.0.0'
+    - name: 'Components'
+      value: 'Gateway v5.8.1, Dashboard v5.8.1, MDCB v2.8.1, Pump v1.12.0, Bootstrap'
+    - name: 'Prerequisites'
+      value: 'Requires tyk-control-plane-secret and tyk-infrastructure-secret'
