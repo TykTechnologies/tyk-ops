@@ -10,114 +10,13 @@ metadata:
 spec:
   project: default
   source:
-    chart: tyk-control-plane
-    repoURL: https://helm.tyk.io/public/helm/charts/
-    targetRevision: 3.0.0
+    repoURL: https://github.com/TykTechnologies/tyk-ops.git
+    targetRevision: HEAD
+    path: gitops/tyk-control-plane
     helm:
       releaseName: tyk-cp
-      valuesObject:
-        global:
-          storageType: postgres
-          adminUser:
-            firstNameSecret:
-              name: tyk-control-plane-secret
-              keyName: adminUserFirstName
-            lastNameSecret:
-              name: tyk-control-plane-secret
-              keyName: adminUserLastName
-            emailSecret:
-              name: tyk-control-plane-secret
-              keyName: adminUserEmail
-            passwordSecret:
-              name: tyk-control-plane-secret
-              keyName: adminUserPassword
-          secrets:
-            APISecret: tyk-control-plane-secret
-            AdminSecret: tyk-control-plane-secret
-          postgres:
-            hostSecret:
-              name: tyk-infrastructure-secret
-              keyName: postgresHost
-            port: 5432
-            userSecret:
-              name: tyk-infrastructure-secret
-              keyName: postgresUser
-            passwordSecret:
-              name: tyk-infrastructure-secret
-              keyName: postgresPassword
-            databaseSecret:
-              name: tyk-infrastructure-secret
-              keyName: postgresDatabase
-            sslmode: require
-          redis:
-            passSecret:
-              name: tyk-infrastructure-secret
-              keyName: redisPassword
-            addrsSecret:
-              name: tyk-infrastructure-secret
-              keyName: redisAddr
-            enableCluster: false
-            useSSL: true
-          components:
-            bootstrap: true
-            dashboard: true
-            gateway: true
-            pump: true
-            mdcb: true
-            devPortal: true
-            operator: true
-        tyk-gateway:
-          gateway:
-            image:
-              tag: v5.8.1
-            service:
-              type: ClusterIP
-              port: 8080
-            ingress:
-              enabled: false
-        tyk-dashboard:
-          dashboard:
-            image:
-              tag: v5.8.1
-            service:
-              type: ClusterIP
-              port: 3000
-            ingress:
-              enabled: false
-          secrets:
-            DashLicense: tyk-control-plane-secret
-            AdminSecret: tyk-control-plane-secret
-            APISecret: tyk-control-plane-secret
-        tyk-mdcb:
-          mdcb:
-            image:
-              tag: v2.8.1
-            service:
-              type: ClusterIP
-              port: 9091
-            ingress:
-              enabled: false
-          secrets:
-            MDCBLicense: tyk-control-plane-secret
-            APISecret: tyk-control-plane-secret
-        tyk-dev-portal:
-          enabled: true
-          image:
-            tag: v1.13.2
-          service:
-            type: ClusterIP
-            port: 3001
-          ingress:
-            enabled: false
-          secrets:
-            DevPortalLicense: tyk-control-plane-secret
-        tyk-operator:
-          image:
-            tag: v1.2.0
-        redis:
-          enabled: false
-        postgresql:
-          enabled: false
+      valueFiles:
+        - values.yaml
   destination:
     server: https://kubernetes.default.svc
     namespace: tyk
@@ -127,16 +26,19 @@ spec:
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
+      - ServerSideApply=true
     retry:
-      limit: 3
+      limit: 5
       backoff:
         duration: 5s
         factor: 2
-        maxDuration: 1m
+        maxDuration: 3m
   info:
     - name: 'Description'
-      value: 'Tyk Control Plane - GitOps deployment via ArgoCD'
+      value: 'Tyk Control Plane - GitOps deployment via ArgoCD using Chart.yaml'
     - name: 'Prerequisites'
       value: 'Requires infrastructure.env and .env secrets, and cert-manager'
     - name: 'Components'
-      value: 'Gateway v5.8.1, Dashboard v5.8.1, MDCB v2.8.1, Pump, Portal, Operator'
+      value: 'Gateway v5.8.1, Dashboard v5.8.1, MDCB v2.8.1, Pump, Bootstrap'
+    - name: 'Secret Management'
+      value: 'Uses Helm chart built-in secret references'

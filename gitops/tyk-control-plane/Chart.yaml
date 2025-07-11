@@ -1,0 +1,11 @@
+apiVersion: v2
+name: tyk-control-plane
+description: Tyk Control Plane deployment with custom values
+type: application
+version: 1.0.0
+appVersion: "5.8.1"
+
+dependencies:
+  - name: tyk-control-plane
+    version: "3.0.0"
+    repository: "https://helm.tyk.io/public/helm/charts/"

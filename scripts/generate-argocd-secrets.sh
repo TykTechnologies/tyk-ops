@@ -58,9 +58,10 @@ if [ -z "$ADMIN_SECRET" ] || [ "$ADMIN_SECRET" == "CHANGEME_GENERATE_RANDOM_STRI
     echo "✅ Generated ADMIN_SECRET: $ADMIN_SECRET"
 fi
 
-# Generate database connection string for Developer Portal
+# Generate database connection strings
 POSTGRES_PASSWORD_ENCODED=$(python3 -c "import urllib.parse; print(urllib.parse.quote('$POSTGRES_PASSWORD', safe=''))")
 DEV_PORTAL_DB_CONNECTION_STRING="host=$POSTGRES_HOST port=5432 dbname=$POSTGRES_DB user=$POSTGRES_USER password=$POSTGRES_PASSWORD_ENCODED sslmode=require"
+POSTGRES_CONNECTION_STRING="postgres://$POSTGRES_USER:$POSTGRES_PASSWORD_ENCODED@$POSTGRES_HOST:5432/$POSTGRES_DB?sslmode=require"
 
 # Create comprehensive secret for all Tyk components
 echo "Creating tyk-control-plane-secret..."
@@ -91,6 +92,7 @@ kubectl create secret generic tyk-infrastructure-secret \
     --from-literal=postgresUser="$POSTGRES_USER" \
     --from-literal=postgresPassword="$POSTGRES_PASSWORD" \
     --from-literal=postgresDatabase="$POSTGRES_DB" \
+    --from-literal=postgresConnectionString="$POSTGRES_CONNECTION_STRING" \
     --from-literal=redisHost="$REDIS_HOST" \
     --from-literal=redisPort="$REDIS_PORT" \
     --from-literal=redisPassword="$REDIS_PASSWORD" \

@@ -78,13 +78,10 @@ terraform apply -var-file="examples/dev.tfvars"
 # 3. Install ArgoCD on the provisioned cluster
 make install-argocd
 
-# 4. Commit GitOps manifests to Git (required for ArgoCD)
-git add gitops/ && git commit -m "Add GitOps manifests" && git push
-
-# 5. Setup Tyk applications in ArgoCD (auto-detects your Git repo)
+# 4. Setup Tyk applications in ArgoCD (auto-detects your Git repo)
 make setup-gitops
 
-# 6. Monitor ArgoCD deployment (Tyk deploys automatically)
+# 5. Monitor ArgoCD deployment (Tyk deploys automatically)
 make gitops-status
 ```
 
