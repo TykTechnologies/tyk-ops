@@ -103,6 +103,14 @@ kubectl create secret generic tyk-operator-conf \
     --from-literal=TYK_ORG=1 \
     --dry-run=client -o yaml | kubectl apply -f -
 
+# Create Dashboard-specific secret with resolved connection strings (for backward compatibility)
+echo "Creating secrets-tyk-cp-tyk-dashboard secret..."
+kubectl create secret generic secrets-tyk-cp-tyk-dashboard \
+    --namespace=tyk \
+    --from-literal=pgConnectionString="$DEV_PORTAL_DB_CONNECTION_STRING" \
+    --from-literal=mongoURL="mongodb://mongo.tyk.svc:27017/tyk_analytics" \
+    --dry-run=client -o yaml | kubectl apply -f -
+
 echo ""
 echo "✅ Kubernetes secrets created successfully!"
 echo ""
@@ -110,11 +118,13 @@ echo "📋 Secrets created:"
 echo "   - tyk-control-plane-secret (licenses, admin user, API/Admin secrets, DB connection)"
 echo "   - tyk-infrastructure-secret (database and Redis connections)"
 echo "   - tyk-operator-conf (operator configuration)"
+echo "   - secrets-tyk-cp-tyk-dashboard (Dashboard-specific DB connections)"
 echo ""
 echo "🔍 Verify secrets:"
 echo "   kubectl get secrets -n tyk"
 echo "   kubectl describe secret tyk-control-plane-secret -n tyk"
 echo "   kubectl describe secret tyk-infrastructure-secret -n tyk"
 echo "   kubectl describe secret tyk-operator-conf -n tyk"
+echo "   kubectl describe secret secrets-tyk-cp-tyk-dashboard -n tyk"
 echo ""
 echo "🚀 Ready to deploy Tyk Control Plane via ArgoCD!"

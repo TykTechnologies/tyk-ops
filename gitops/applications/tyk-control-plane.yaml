@@ -18,10 +18,22 @@ spec:
       valuesObject:
         global:
           storageType: postgres
-          secrets:
-            useSecretName: "tyk-control-plane-secret"
           adminUser:
-            useSecretName: "tyk-control-plane-secret"
+            firstNameSecret:
+              name: tyk-control-plane-secret
+              keyName: adminUserFirstName
+            lastNameSecret:
+              name: tyk-control-plane-secret
+              keyName: adminUserLastName
+            emailSecret:
+              name: tyk-control-plane-secret
+              keyName: adminUserEmail
+            passwordSecret:
+              name: tyk-control-plane-secret
+              keyName: adminUserPassword
+          secrets:
+            APISecret: tyk-control-plane-secret
+            AdminSecret: tyk-control-plane-secret
           postgres:
             host:
               valueFrom:
@@ -82,7 +94,10 @@ spec:
               port: 3000
             ingress:
               enabled: false
-          useSecretName: "tyk-control-plane-secret"
+          secrets:
+            DashLicense: tyk-control-plane-secret
+            AdminSecret: tyk-control-plane-secret
+            APISecret: tyk-control-plane-secret
         tyk-mdcb:
           mdcb:
             image:
@@ -92,7 +107,9 @@ spec:
               port: 9091
             ingress:
               enabled: false
-            useSecretName: "tyk-control-plane-secret"
+          secrets:
+            MDCBLicense: tyk-control-plane-secret
+            APISecret: tyk-control-plane-secret
         tyk-dev-portal:
           enabled: true
           image:
@@ -102,7 +119,8 @@ spec:
             port: 3001
           ingress:
             enabled: false
-          useSecretName: "tyk-control-plane-secret"
+          secrets:
+            DevPortalLicense: tyk-control-plane-secret
         tyk-operator:
           image:
             tag: v1.2.0
