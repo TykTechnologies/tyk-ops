@@ -58,15 +58,21 @@ if [ -z "$ADMIN_SECRET" ] || [ "$ADMIN_SECRET" == "CHANGEME_GENERATE_RANDOM_STRI
     echo "✅ Generated ADMIN_SECRET: $ADMIN_SECRET"
 fi
 
+# Generate database connection string for Developer Portal
+POSTGRES_PASSWORD_ENCODED=$(python3 -c "import urllib.parse; print(urllib.parse.quote('$POSTGRES_PASSWORD', safe=''))")
+DEV_PORTAL_DB_CONNECTION_STRING="host=$POSTGRES_HOST port=5432 dbname=$POSTGRES_DB user=$POSTGRES_USER password=$POSTGRES_PASSWORD_ENCODED sslmode=require"
+
 # Create comprehensive secret for all Tyk components
 echo "Creating tyk-control-plane-secret..."
 kubectl create secret generic tyk-control-plane-secret \
     --namespace=tyk \
     --from-literal=APISecret="$API_SECRET" \
     --from-literal=AdminSecret="$ADMIN_SECRET" \
+    --from-literal=securitySecret="$API_SECRET" \
     --from-literal=DashLicense="$DASHBOARD_LICENSE" \
     --from-literal=MDCBLicense="$MDCB_LICENSE" \
     --from-literal=DevPortalLicense="$PORTAL_LICENSE" \
+    --from-literal=DevPortalDatabaseConnectionString="$DEV_PORTAL_DB_CONNECTION_STRING" \
     --from-literal=OperatorLicense="$OPERATOR_LICENSE" \
     --from-literal=adminUserFirstName="$ADMIN_FIRST_NAME" \
     --from-literal=adminUserLastName="$ADMIN_LAST_NAME" \
@@ -87,16 +93,28 @@ kubectl create secret generic tyk-infrastructure-secret \
     --from-literal=redisPassword="$REDIS_PASSWORD" \
     --dry-run=client -o yaml | kubectl apply -f -
 
+# Create Tyk Operator configuration secret
+echo "Creating tyk-operator-conf secret..."
+kubectl create secret generic tyk-operator-conf \
+    --namespace=tyk \
+    --from-literal=TYK_MODE=ce \
+    --from-literal=TYK_URL=http://gateway-tyk-cp-tyk-gateway.tyk.svc.cluster.local:8080 \
+    --from-literal=TYK_AUTH="$API_SECRET" \
+    --from-literal=TYK_ORG=1 \
+    --dry-run=client -o yaml | kubectl apply -f -
+
 echo ""
 echo "✅ Kubernetes secrets created successfully!"
 echo ""
 echo "📋 Secrets created:"
-echo "   - tyk-control-plane-secret (licenses, admin user, API/Admin secrets)"
+echo "   - tyk-control-plane-secret (licenses, admin user, API/Admin secrets, DB connection)"
 echo "   - tyk-infrastructure-secret (database and Redis connections)"
+echo "   - tyk-operator-conf (operator configuration)"
 echo ""
 echo "🔍 Verify secrets:"
 echo "   kubectl get secrets -n tyk"
 echo "   kubectl describe secret tyk-control-plane-secret -n tyk"
 echo "   kubectl describe secret tyk-infrastructure-secret -n tyk"
+echo "   kubectl describe secret tyk-operator-conf -n tyk"
 echo ""
 echo "🚀 Ready to deploy Tyk Control Plane via ArgoCD!"

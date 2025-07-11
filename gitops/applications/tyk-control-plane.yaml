@@ -82,6 +82,7 @@ spec:
               port: 3000
             ingress:
               enabled: false
+          useSecretName: "tyk-control-plane-secret"
         tyk-mdcb:
           mdcb:
             image:
