@@ -65,7 +65,7 @@ spec:
               - valueFrom:
                   secretKeyRef:
                     name: tyk-infrastructure-secret
-                    key: redisHost
+                    key: redisAddr
             enableCluster: false
             useSSL: true
           components:

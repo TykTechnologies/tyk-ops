@@ -80,6 +80,9 @@ kubectl create secret generic tyk-control-plane-secret \
     --from-literal=adminUserPassword="$ADMIN_PASSWORD" \
     --dry-run=client -o yaml | kubectl apply -f -
 
+# Create complete Redis address for Tyk components
+REDIS_ADDR="$REDIS_HOST:$REDIS_PORT"
+
 # Create infrastructure secrets
 echo "Creating tyk-infrastructure-secret..."
 kubectl create secret generic tyk-infrastructure-secret \
@@ -91,6 +94,7 @@ kubectl create secret generic tyk-infrastructure-secret \
     --from-literal=redisHost="$REDIS_HOST" \
     --from-literal=redisPort="$REDIS_PORT" \
     --from-literal=redisPassword="$REDIS_PASSWORD" \
+    --from-literal=redisAddr="$REDIS_ADDR" \
     --dry-run=client -o yaml | kubectl apply -f -
 
 # Create Tyk Operator configuration secret
