@@ -95,58 +95,15 @@ load_environment() {
 create_secrets() {
     log_info "Creating Kubernetes secrets..."
     
-    # Ensure tyk namespace exists
-    kubectl create namespace tyk --dry-run=client -o yaml | kubectl apply -f -
-    
-    # Create PostgreSQL secret
-    log_info "Creating PostgreSQL secret..."
-    kubectl create secret generic tyk-postgres-secret \
-        --from-literal=host="$POSTGRES_HOST" \
-        --from-literal=user="$POSTGRES_USER" \
-        --from-literal=password="$POSTGRES_PASSWORD" \
-        --from-literal=database="$POSTGRES_DB" \
-        --from-literal=connection-string="postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD_ENCODED@$POSTGRES_HOST:5432/$POSTGRES_DB?sslmode=require" \
-        --namespace=tyk \
-        --dry-run=client -o yaml | kubectl apply -f -
-    
-    # Create Redis secret
-    log_info "Creating Redis secret..."
-    kubectl create secret generic tyk-redis-secret \
-        --from-literal=addr="$REDIS_HOST:$REDIS_PORT" \
-        --from-literal=password="$REDIS_PASSWORD" \
-        --namespace=tyk \
-        --dry-run=client -o yaml | kubectl apply -f -
-    
-    # Create license secret
-    log_info "Creating license secret..."
-    kubectl create secret generic tyk-license-secret \
-        --from-literal=dashboard="$DASHBOARD_LICENSE" \
-        --from-literal=mdcb="$MDCB_LICENSE" \
-        --from-literal=portal="$PORTAL_LICENSE" \
-        --from-literal=operator="$OPERATOR_LICENSE" \
-        --namespace=tyk \
-        --dry-run=client -o yaml | kubectl apply -f -
-    
-    # Create security secret
-    log_info "Creating security secret..."
-    kubectl create secret generic tyk-security-secret \
-        --from-literal=api-secret="$API_SECRET" \
-        --from-literal=admin-secret="$ADMIN_SECRET" \
-        --from-literal=mdcb-security-secret="$MDCB_SECURITY_SECRET" \
-        --namespace=tyk \
-        --dry-run=client -o yaml | kubectl apply -f -
-    
-    # Create admin user secret
-    log_info "Creating admin user secret..."
-    kubectl create secret generic tyk-admin-secret \
-        --from-literal=first-name="$ADMIN_FIRST_NAME" \
-        --from-literal=last-name="$ADMIN_LAST_NAME" \
-        --from-literal=email="$ADMIN_EMAIL" \
-        --from-literal=password="$ADMIN_PASSWORD" \
-        --namespace=tyk \
-        --dry-run=client -o yaml | kubectl apply -f -
-    
-    log_success "All secrets created successfully"
+    # Use the dedicated ArgoCD secrets generation script
+    if [[ -f "./scripts/generate-argocd-secrets.sh" ]]; then
+        log_info "Running ArgoCD secrets generation script..."
+        ./scripts/generate-argocd-secrets.sh
+        log_success "ArgoCD secrets created successfully"
+    else
+        log_error "ArgoCD secrets generation script not found at ./scripts/generate-argocd-secrets.sh"
+        exit 1
+    fi
 }
 
 # Deploy ArgoCD root application
