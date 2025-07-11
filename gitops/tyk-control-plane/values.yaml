@@ -191,8 +191,7 @@ tyk-dashboard:
     enableAnalyticsCache: true
     allowExplicitPolicyId: true
     oauthRedirectUriSeparator: ";"
-    keyRequest
-Fields: "appName;appType"
+    keyRequestFields: "appName;appType"
     dashboardSessionLifetime: 43200
     ssoEnableUserLookup: true
     notificationsListenPort: 5000
