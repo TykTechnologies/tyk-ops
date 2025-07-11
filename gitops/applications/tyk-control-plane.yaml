@@ -35,37 +35,27 @@ spec:
             APISecret: tyk-control-plane-secret
             AdminSecret: tyk-control-plane-secret
           postgres:
-            host:
-              valueFrom:
-                secretKeyRef:
-                  name: tyk-infrastructure-secret
-                  key: postgresHost
+            hostSecret:
+              name: tyk-infrastructure-secret
+              keyName: postgresHost
             port: 5432
-            user:
-              valueFrom:
-                secretKeyRef:
-                  name: tyk-infrastructure-secret
-                  key: postgresUser
-            password:
-              valueFrom:
-                secretKeyRef:
-                  name: tyk-infrastructure-secret
-                  key: postgresPassword
-            database:
-              valueFrom:
-                secretKeyRef:
-                  name: tyk-infrastructure-secret
-                  key: postgresDatabase
+            userSecret:
+              name: tyk-infrastructure-secret
+              keyName: postgresUser
+            passwordSecret:
+              name: tyk-infrastructure-secret
+              keyName: postgresPassword
+            databaseSecret:
+              name: tyk-infrastructure-secret
+              keyName: postgresDatabase
             sslmode: require
           redis:
             passSecret:
               name: tyk-infrastructure-secret
               keyName: redisPassword
-            addrs:
-              - valueFrom:
-                  secretKeyRef:
-                    name: tyk-infrastructure-secret
-                    key: redisAddr
+            addrsSecret:
+              name: tyk-infrastructure-secret
+              keyName: redisAddr
             enableCluster: false
             useSSL: true
           components:
