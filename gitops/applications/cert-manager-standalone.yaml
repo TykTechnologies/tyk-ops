@@ -3,13 +3,13 @@ kind: Application
 metadata:
   name: cert-manager
   namespace: argocd
-  annotations:
-    argocd.argoproj.io/sync-wave: "1"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
 spec:
   project: default
   source:
-    chart: cert-manager
     repoURL: https://charts.jetstack.io
+    chart: cert-manager
     targetRevision: v1.14.4
     helm:
       releaseName: cert-manager
@@ -29,8 +29,13 @@ spec:
       - CreateNamespace=true
       - ServerSideApply=true
     retry:
-      limit: 5
       backoff:
         duration: 5s
         factor: 2
         maxDuration: 3m
+      limit: 5
+  info:
+    - name: 'Description'
+      value: 'Cert-Manager for automatic TLS certificate management'
+    - name: 'Version'
+      value: 'v1.14.4'
